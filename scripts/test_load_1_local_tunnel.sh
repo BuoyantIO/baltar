@@ -1,9 +1,15 @@
+# Load test through whatever is publishing localhost:8080, tunnel
+# included: kubectl port-forward, or a socat bridge to the NodePort.
+# Measures that path as much as the cluster; for the cluster alone use
+# test_load_2_docker_nodeport.sh. Needs bombardier installed on the host.
+# Usage: test_load_1_local_tunnel.sh [PORT] [PATH]
+
 # set the port
 PORT="${1:-8080}"
 # set the http path: `blocking`
 QUERY="${2:-}"
 
-bombardier -c 125 -n 10000000 http://localhost:$PORT/$QUERY
+bombardier -c 125 -d 30s http://localhost:$PORT/$QUERY
 
 # Bombarding http://localhost:8080 with 10000000 requests using 125 connections
 #  10000000 / 10000000 [============================================] 100.00% 37s Done!

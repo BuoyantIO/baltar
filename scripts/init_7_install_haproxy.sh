@@ -1,25 +1,34 @@
 #!/usr/bin/env bash
-set -e
+# Usage: ./init_7_install_haproxy.sh
+#        HAPROXY_NODEPORT=31080 ./init_7_install_haproxy.sh
+# Setup step 7. Installs the HAProxy ingress controller and the Ingress
+# that routes to emojivoto's web-svc, so init_6 must have run first.
+# The port-forward that used to end this script now lives in
+# pf_4_haproxy_forward.sh, which blocks and so is not a setup step.
+set -euo pipefail
 
-echo "=== 1. Deploying Emojivoto Application ==="
-curl --proto '=https' --tlsv1.2 -sSfL https://run.linkerd.io/emojivoto.yml | kubectl apply -f -
-
-echo "=== 2. Installing HAProxy Ingress Controller via Helm ==="
+echo "=== 1. Installing HAProxy Ingress Controller via Helm ==="
 helm repo add haproxytech https://haproxytech.github.io/helm-charts
 helm repo update
 
+# The NodePort is pinned rather than randomly assigned. An unpinned
+# port moves on every reinstall, which silently broke the load-test URL
+# after the last rebuild, and it would break an SSH tunnel or a kind
+# extraPortMapping the same way. The chart's values document this as
+# "If empty, random ports will be used".
 helm upgrade --install haproxy-ingress haproxytech/kubernetes-ingress \
   --create-namespace \
-  --namespace haproxy-controller
+  --namespace haproxy-controller \
+  --set controller.service.nodePorts.http=${HAPROXY_NODEPORT:-31080}
 
-echo "=== 3. Waiting for HAProxy Controller Pod to be Ready ==="
+echo "=== 2. Waiting for HAProxy Controller Pod to be Ready ==="
 kubectl wait --namespace haproxy-controller \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/name=kubernetes-ingress \
   --timeout=90s
 
-echo "=== 4. Applying HAProxy Ingress Resource in 'emojivoto' Namespace ==="
-cat <<EOF | kubectl apply -f -
+echo "=== 3. Applying HAProxy Ingress Resource in 'emojivoto' Namespace ==="
+cat <<'INGRESS' | kubectl apply -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -39,13 +48,7 @@ spec:
             name: web-svc
             port:
               number: 80
-EOF
-
-echo "=== 5. Forwarding HAProxy to http://localhost:8080 ==="
-echo "Access Emojivoto in your browser at: http://localhost:8080"
-echo "Press Ctrl+C to stop forwarding."
-
-kubectl port-forward -n haproxy-controller svc/haproxy-ingress-kubernetes-ingress 8080:80
+INGRESS
 
 # ==============================================================================
 # CLEANUP COMMANDS (Removes HAProxy & Ingress, keeps Emojivoto running)

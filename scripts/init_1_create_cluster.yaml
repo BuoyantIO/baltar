@@ -1,0 +1,19 @@
+# kind cluster config. Exists for one reason: extraPortMappings can only
+# be set at create time, so the NodePort cannot be published to the host
+# without a config file.
+#
+# containerPort must match the NodePort that init_7_install_haproxy.sh
+# pins (HAPROXY_NODEPORT, default 31080). If you change one, change both.
+#
+# listenAddress is 127.0.0.1 so the published port is not exposed beyond
+# this machine. On a VM that must be reached from elsewhere, override it
+# with KIND_LISTEN_ADDRESS=0.0.0.0 and put a firewall rule in front of it.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 31080
+        hostPort: 8080
+        listenAddress: "127.0.0.1"
+        protocol: TCP
