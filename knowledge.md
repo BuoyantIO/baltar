@@ -6,9 +6,40 @@ current numbers live in the `checklist_*.md` files, not here.
 
 ## Measure the right thing
 
-**CPU: read the proxy's own `process_cpu_seconds_total`** from its admin
-endpoint (:4191). Sample twice, divide the delta by the *measured*
-elapsed time, ×100 for percent of one core. Nothing else is synchronous.
+**CPU: read cgroup v2 `cpu.stat` `usage_usec`** through a pod that
+hostPath-mounts the node's `/sys/fs/cgroup`. Sample twice, divide the
+delta by the *measured* elapsed time, ×100 for percent of one core.
+
+This supersedes the proxy's own `process_cpu_seconds_total`, which is
+still correct but only exists where there is a proxy. An unmeshed
+workload has no :4191 and no `job="linkerd-proxy"` series, so any
+meshed-vs-unmeshed comparison needs a source that reads both states
+identically. The cgroup counter does; it is also microsecond-resolution
+against the proxy counter's two decimal places.
+
+The two agree. Under load, over an 18.568s window on a meshed
+`emojivoto/web` proxy: proxy counter 7.28 CPU-s, cgroup 7.284686 CPU-s,
+a **+0.064% disagreement**, which is inside the proxy counter's own 10ms
+quantization (±0.069% on 7.28s). Idle they disagree by 1.50%, but that
+is 3.16ms on a 0.21s delta, and the cgroup read is the more precise of
+the two, not the less.
+
+The path is
+`/sys/fs/cgroup/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-<qos>.slice/kubelet-kubepods-<qos>-pod<UID>.slice/cri-containerd-<containerID>.scope/cpu.stat`.
+`<qos>` is `besteffort`, `burstable`, or absent for guaranteed; `<UID>`
+is `.metadata.uid` with `-` replaced by `_`. It advances every second
+with no lumps, so 1Hz is a real sampling rate here.
+
+**Stream it, do not exec per sample.** One `kubectl exec` costs ~85ms and
+a single exec reads all ~30 container cgroups in 105ms, so cost is per
+sample, not per target. A long-lived exec running a loop inside the pod
+removes even that. Per-sample execs would mean ~86,000 process spawns a
+day.
+
+**Killing the local `kubectl exec` does not kill the in-pod loop.** The
+loop parks in `write(2)` because the pipe stays open and unread on the
+pod side, so it never sees EPIPE. Stale loops accumulate and double the
+sample rate. Mark the loop and reap it by name before every connect.
 
 **cAdvisor lags ~10-20s.** Useless for runs under a couple of minutes: it
 once reported half the CPU of a 30s run. The accounting is the same, only
@@ -44,6 +75,13 @@ Two methods, and agreeing answers are worth far more than one:
   rows are measured; everything else is subtraction and errors compound.
 - **CPU per request**: CPU seconds over the window ÷ requests, per
   container. No subtraction, so it is the stronger check.
+
+**CPU per request is the figure that survives a config change.** Across
+two runs with different replica counts, connection counts and
+throughputs, the ingress proxy cost 115.9 and 106.8 uCPU/req: the same
+number. Percent-of-a-core differed wildly between them (198% summed
+across two proxies versus 161% on one) and is meaningless without the
+request rate beside it. Quote percent only with throughput attached.
 
 **Check saturation before touching a limit.** A cap only matters if
 something reaches it. Raising the proxy's core cap bought ~7% precisely
@@ -82,6 +120,60 @@ count is the only bound. `LINKERD2_PROXY_CORES_MAX` caps worker threads,
 not CPU time; `config.linkerd.io/proxy-cpu-limit` sets a real Kubernetes
 limit and conflates the two. A 1-core proxy runs tokio's current-thread
 runtime, so its main thread is the worker.
+
+**`helm upgrade --reset-values` drops every user-supplied value, and a
+value the chart defaults differently is then patched back to that
+default.** Confirmed for the pinned NodePort: the chart default is
+`nodePorts: {}`, documented as "If empty, random ports will be used", so
+after `--reset-values` the rendered Service carries no nodePort and the
+old pinned one is patched away.
+
+**Whether an out-of-band change survives depends on one thing: does the
+chart render that field?** Measured 2026-09-17, both directions.
+
+- **A field the chart renders is patched back, even if its rendered value
+  did not change between releases.** `kubectl scale` to 1, then a
+  byte-identical `--reset-values` upgrade, and replicas returns to the
+  chart's 2. So a mesh toggle silently rescales a deployment someone
+  scaled by hand.
+- **A field the chart renders in neither manifest is left alone.** A
+  `kubectl patch` annotation that helm never set, such as the
+  `config.linkerd.io/proxy-additional-env` that
+  `dev_3_modify_linkerd_cores.sh` writes, survived three separate
+  `--reset-values` upgrades. In the decisive one the pod was not even
+  replaced, so helm sent no pod-template patch at all.
+
+The practical consequence: **pin proxy cores once with `dev_3` and later
+mesh toggles keep them.** One rollout, and mesh scripts do not need to
+know about cores. Replica counts are the opposite and must be read from
+the live object and passed back through the values on every upgrade.
+
+The intuition "helm erases anything set outside helm" is wrong and was
+recorded here as fact before it was tested.
+
+## What a mesh toggle looks like under load
+
+**The proxy does not spike when the mesh lands. It reads ~0, then
+steps.** A newly meshed pod is Running and Ready while receiving no
+traffic at all, because a closed-loop generator holds long-lived
+keep-alive connections and conntrack pins each to the pod it was
+established with. Nothing moves until the old pod is terminated.
+
+Measured twice: the idle period was ~40s with 2 replicas (the deployment
+rolls one at a time) and ~13s with 1 (it surges then terminates). The
+handover then completes in one to three ticks, straight to the plateau,
+with no overshoot. **The interesting moment is the old pod's
+termination, not the helm upgrade**, and the two are tens of seconds
+apart.
+
+**Mark the roll and never average across it.** The old container's
+counter stops and the new one starts from zero; they must not join. A
+container disappearing is a gap, never a zero, because a zero drags an
+average down silently.
+
+**Never sum proxy CPU across replicas and compare it to a core budget.**
+Each proxy has its own. Two proxies summing to 198% of a core look like
+they are grazing a 2-core cap and are in fact at half of it each.
 
 ## Traps
 
@@ -141,6 +233,7 @@ one. `wip_` marks a script that works but is not fit to hand over.
 - `init_5_install_headlamp.sh` headlamp, the cluster UI
 - `init_6_deploy_emojivoto.sh` the demo app, which arrives unmeshed
 - `init_7_install_haproxy.sh` haproxy ingress and its Ingress, NodePort pinned
+- `init_8_install_cpu_probe.sh` the cpu-probe DaemonSet that every CPU measurement reads through; verifies the cgroup mount rather than trusting Ready, since a Ready pod with the wrong tree looks identical
 - `cleanup_1_cluster.sh` deletes the cluster; nothing survives it
 
 ### General
@@ -151,13 +244,22 @@ one. `wip_` marks a script that works but is not fit to hand over.
 
 ### Dev
 - `dev_1_mesh_emojivoto.sh <mesh|unmesh>` meshes or unmeshes emojivoto
-- `dev_2_mesh_haproxy.sh <mesh|unmesh>` meshes or unmeshes the ingress; unmesh currently resets the pinned NodePort, so re-run init_7 after it
+- `dev_2_mesh_haproxy.sh <mesh|unmesh>` meshes or unmeshes the ingress, and nothing else. It re-pins the NodePort on unmesh and passes the live replica count back through on both paths, because those are the two fields an upgrade would otherwise undo. Core pinning is `dev_3`'s job and survives a toggle on its own.
 - `dev_3_modify_linkerd_cores.sh [NS] [WORKLOAD] [CORES]` sets the proxy worker cap, defaulting to `emojivoto deploy/web`
 - `dev_4_inspect_cores.sh [NS] [WORKLOAD]` confirms the cap took: annotation, container env, the proxy's startup decision and `tokio_rt_workers` together, because they can disagree
+- `dev_5_measure_start.sh <run> <ns> <workload>` starts the CPU sampler on one workload and blocks; `RESOLVE_INTERVAL` (default 5s) sets how fast a roll is noticed
+- `dev_6_measure_stop.sh` ends the run and writes `<run>.csv`, one row per container per second
+- `dev_7_scale_workloads.sh [EMOJIVOTO] [HAPROXY]` sets replica counts, defaulting to 5 and 1; `VOTE_BOT_REPLICAS=0` removes the built-in load generator, which is capacity for the app but noise for a measurement
 
 ### Testing
 - `test_load_1_local_tunnel.sh [PORT] [PATH]` drives load from the host, only when you deliberately want to measure a host-side path
-- `test_load_2_docker_nodeport.sh [CONNS] [DURATION]` the default load generator: a container on the `kind` network straight at the NodePort
+- `test_load_2_docker_nodeport.sh [CONNS] [DURATION] [URL]` the default load generator: a container on the `kind` network straight at the NodePort. Given a URL it skips the kubectl derivation entirely, which is how it points at a remote cluster with no code change. It prints ONE aggregate for the whole run, so a run spanning two mesh states cannot have its two request rates separated: that needs two runs.
+
+`util_measure.sh` is sourced by `dev_5` and `dev_6` and run directly by
+neither. It holds only what both need: the state-dir layout, locating the
+probe pod, the in-pod reaper, the cgroup and container-id contract the
+two ends agree on, workload-to-pod resolution with mesh state, and the
+CSV schema.
 
 ### In revision
 `wip_`: these produced the CPU and per-hop-latency results but are not

@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cpu-probe
+  namespace: kube-system
+  labels:
+    app: cpu-probe
+spec:
+  selector:
+    matchLabels:
+      app: cpu-probe
+  template:
+    metadata:
+      labels:
+        app: cpu-probe
+    spec:
+      # One per node, not one per measured workload.
+      #
+      # The cgroup tree is per-node, and every container on a node is a
+      # path under the same mount.
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: probe
+          image: busybox:1.36
+          # PID 1 is a shell loop with a TERM trap, not `sleep
+          # infinity`.
+          #
+          # PID 1 has to reap. The sampler's in-pod reaper
+          # (util_measure.sh, INPOD_REAP) kills the collector loop and
+          # its children by name; anything that outlives its parent is
+          # reparented to PID 1 of the pod's PID namespace and stays a
+          # zombie until PID 1 calls wait(2). `sleep` never does, so
+          # every reconnect leaked one or two entries into a pod meant
+          # to live as long as the cluster (4 present after ~3h,
+          # measured 2026-09-17).
+          #
+          # busybox ships no tini, so PID 1 is a shell loop instead: ash
+          # waits for the foreground `sleep` with waitpid(-1), which
+          # reaps whatever else has been reparented to it along the way.
+          # Verified on this cluster: two orphaned children left 2
+          # zombies under `sleep infinity` and 0 under this loop.
+          #
+          # The trap is what makes it stop: the kernel drops unhandled
+          # default-action signals to PID 1, so SIGTERM on delete was
+          # ignored and the pod took the full 30s grace period. With the
+          # trap it exits in under a second (both timed the same day).
+          command:
+            - sh
+            - -c
+            - "trap 'exit 0' TERM INT; while :; do sleep 1; done"
+          resources:
+            # Kept tiny and explicitly Burstable.
+            #
+            # The probe shares the CPU it is measuring, so its own cost
+            # has to stay noise.
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: cgroup
+              mountPath: /hostcgroup
+              readOnly: true
+      volumes:
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory

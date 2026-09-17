@@ -2,20 +2,21 @@
 # Usage: ./pf_2_grafana_dashboard.sh
 # Opens the Grafana dashboard: copies the admin password to the
 # clipboard, port-forwards the pod, and opens the browser at it.
-# Log in as `admin` and paste the password.
 #
+# The login is `admin`, with the password pasted from the clipboard.
 # The pf_<n>_ prefix marks a script that port-forwards or exposes a
 # service. The number follows the init_ step that installs what it
-# exposes: grafana is init_4, so this is pf_2 of the group.
-#
-# Blocks until ctrl-C, so a rebuild chain must not call it. Prefers
+# exposes: grafana is init_4, so this is pf_2 of the group. It blocks
+# until ctrl-C, so a rebuild chain must not call it. It prefers
 # pbcopy and open, falling back to xclip/xsel and xdg-open on Linux.
 set -euo pipefail
 
-# macOS-only tools, guarded so these scripts still work on a headless
-# Linux host (the VM of task 26). On Linux we fall back to xclip/xsel if
-# present and otherwise print, which is the only sane behaviour with no
-# clipboard and no browser.
+# Guards the macOS-only clipboard and browser tools.
+#
+# The guard is what keeps these scripts working on a headless Linux
+# host (the VM of task 26). On Linux we fall back to xclip/xsel if
+# present and otherwise print, which is the only sane behaviour with
+# no clipboard and no browser.
 copy_to_clipboard() {
   if command -v pbcopy >/dev/null 2>&1; then
     pbcopy
@@ -47,9 +48,11 @@ POD_NAME=$(kubectl get pods --namespace grafana -l "app.kubernetes.io/name=grafa
 
 echo "Visit http://localhost:${PORT} and log in as admin; the password is on your clipboard."
 
-# Backgrounded so the browser opens once the tunnel answers: in the
-# foreground it would block and `open` would never run. The trap stops
-# the tunnel when this script exits, however it exits.
+# Backgrounds the port-forward and traps its exit.
+#
+# The browser can only be opened once the tunnel answers: in the
+# foreground the port-forward would block and `open` would never run.
+# The trap stops the tunnel when this script exits, however it exits.
 kubectl --namespace grafana port-forward "$POD_NAME" "${PORT}:${PORT}" &
 PF_PID=$!
 trap 'kill "$PF_PID" 2>/dev/null || true' EXIT

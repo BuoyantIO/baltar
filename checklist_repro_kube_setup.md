@@ -580,9 +580,14 @@ command in `dev_1_mesh_emojivoto.sh` under `set -e`, a successful mesh exits
 created. On the rebuild all five came up injected at 2/2, so it is a
 race at install time, not a property of init_3.
 
-- [ ] Decide what `dev_1_mesh_emojivoto.sh` should do about the exit code
+- [x] Decide what `dev_1_mesh_emojivoto.sh` should do about the exit code
       - `|| true` hides real failures; leaving it means every successful
         mesh looks like a failure
+      - done in task 14 of `checklist_mvp.md`: the script now captures
+        the check, prints it whole, and exits non-zero unless the only
+        `×` line is the linkerd-trust one. Root cause recorded there:
+        linkerd-trust announces `checks: always`, so it runs on every
+        `linkerd check`, and its `check` has no `--namespace` flag.
 - [ ] Fix or remove the `linkerd-trust` extension
       - a local binary in `~/.linkerd2/bin/`, outside this repo, so a
         rebuild will not fix it

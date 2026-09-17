@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Usage: ./init_4_install_grafana.sh
+#
 # Setup step 4. Installs Grafana wired to the linkerd-viz Prometheus.
-# Pulls the grafana chart locally, patches its values.yaml, installs
+#
+# It pulls the grafana chart locally, patches its values.yaml, installs
 # from that local copy, then deletes the local copy.
 #
 # Requires: helm, yq, curl, and a linkerd-viz install already in the
@@ -9,23 +11,27 @@
 # Destructive: deletes and recreates the `grafana` namespace.
 set -euo pipefail
 
-# Work dir is anchored to the repo root, not the caller's cwd, so the
-# script can be invoked from anywhere and still clean up after itself.
+# The work dir is anchored to the repo root, not the caller's cwd.
+#
+# The script can then be invoked from anywhere and still clean up after
+# itself.
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORKDIR="$REPO_ROOT/grafana-install"
 
-# fetch chart -> $WORKDIR/grafana
+# Fetches the chart into $WORKDIR/grafana.
 rm -rf "$WORKDIR"
 helm repo add grafana https://grafana.github.io/helm-charts --force-update
 helm repo update grafana
 helm pull grafana/grafana --untar --untardir "$WORKDIR"
 
-# use linkerd's own values.yaml as source of truth (datasource + dashboards),
-# layered on top of the chart's defaults - not replacing them
+# Uses linkerd's own values.yaml as the source of truth for the
+# datasource and dashboards.
+#
+# It is layered on top of the chart's defaults, not replacing them.
 curl -sSL https://raw.githubusercontent.com/linkerd/linkerd2/main/grafana/values.yaml \
   -o "$WORKDIR/linkerd-values.yaml"
 
-# fixes so grafana works when reverse-proxied under /grafana/
+# Fixes so grafana works when reverse-proxied under /grafana/.
 yq -i '.["grafana.ini"].server.root_url = "%(protocol)s://%(domain)s:%(http_port)s/grafana/"' "$WORKDIR/linkerd-values.yaml"
 yq -i '.["grafana.ini"].server.serve_from_sub_path = true' "$WORKDIR/linkerd-values.yaml"
 
@@ -33,9 +39,11 @@ kubectl delete namespace grafana --ignore-not-found
 kubectl create namespace grafana
 helm install grafana "$WORKDIR/grafana" -n grafana -f "$WORKDIR/linkerd-values.yaml"
 
-# allow grafana's ServiceAccount to query the linkerd-viz prometheus
-# (its admin/query port is deny-by-default, only metrics-api is allowed otherwise)
+# Allows grafana's ServiceAccount to query the linkerd-viz prometheus.
+#
+# Its admin/query port is deny-by-default: only metrics-api is allowed
+# otherwise.
 kubectl apply -f https://raw.githubusercontent.com/linkerd/linkerd2/main/grafana/authzpolicy-grafana.yaml
 
-# clean up work dir
+# Cleans up the work dir.
 rm -rf "$WORKDIR"

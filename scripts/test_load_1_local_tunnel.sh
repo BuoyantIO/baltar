@@ -1,7 +1,10 @@
 # Load test through whatever is publishing localhost:8080, tunnel
 # included: kubectl port-forward, or a socat bridge to the NodePort.
-# Measures that path as much as the cluster; for the cluster alone use
-# test_load_2_docker_nodeport.sh. Needs bombardier installed on the host.
+#
+# It measures that path as much as the cluster; for the cluster alone
+# test_load_2_docker_nodeport.sh is the one to use. bombardier must be
+# installed on the host.
+#
 # Usage: test_load_1_local_tunnel.sh [PORT] [PATH]
 
 # set the port
