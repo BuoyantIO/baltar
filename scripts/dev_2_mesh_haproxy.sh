@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-# Usage: ./dev_2_mesh_haproxy.sh <mesh|unmesh>
+# Usage: ./dev_2_mesh_haproxy.sh <mesh|unmesh> [CORES]
+#   e.g. ./dev_2_mesh_haproxy.sh mesh        # mesh, proxy's own core default
+#        ./dev_2_mesh_haproxy.sh mesh 3      # mesh AND pin CORES_MAX=3
+#        ./dev_2_mesh_haproxy.sh unmesh
+#
+# CORES only applies to `mesh`; it sets the same
+# LINKERD2_PROXY_CORES_MAX annotation dev_3_modify_linkerd_cores.sh
+# does, but in the same upgrade that adds the sidecar, so a mesh+cores
+# toggle is one rollout instead of two. Without CORES, `mesh` leaves
+# whatever core pin was already on the pod template (dev_3's annotation
+# survives helm upgrades, per the note below) or the proxy's own
+# default if none was ever set.
 #
 # The kubectl port-forward on :8080 dies with the old pods, so restart
 # it after.
@@ -34,14 +45,44 @@ HAPROXY_NODEPORT="${HAPROXY_NODEPORT:-31080}"
 REPLICAS=$(kubectl get deploy "$RELEASE"-kubernetes-ingress -n "$NS" \
   -o jsonpath='{.spec.replicas}' 2>/dev/null || true)
 
+CORES="${2:-}"
+if [ -n "$CORES" ]; then
+  case "$CORES" in ''|*[!0-9]*) echo "cores must be a positive integer" >&2; exit 1 ;; esac
+  [ "$CORES" -gt 0 ] || { echo "cores must be a positive integer" >&2; exit 1; }
+fi
+
 case "${1:-}" in
   # Mesh: set the inject annotation via Helm values.
   #
   # Setting it as a Helm value is what lets unmesh revert it exactly.
+  #
+  # With CORES given, the core pin annotation goes through a values
+  # FILE, not --set: its value is itself a JSON string
+  # (`[{"name":"LINKERD2_PROXY_CORES_MAX",...}]`), and quoting that
+  # through --set's own comma/dot escaping is what task 17 hit and
+  # worked around with a file instead. --reset-values here for the
+  # same reason unmesh uses it: the file is now the complete,
+  # deterministic set of values, not a delta on top of history.
   mesh)
-    helm upgrade "$RELEASE" "$CHART" -n "$NS" --reuse-values \
-      --set 'controller.podAnnotations.linkerd\.io/inject=enabled' \
-      ${REPLICAS:+--set controller.replicaCount=$REPLICAS}
+    if [ -n "$CORES" ]; then
+      VALUES_FILE=$(mktemp)
+      trap 'rm -f "$VALUES_FILE"' EXIT
+      cat > "$VALUES_FILE" <<EOF
+controller:
+  podAnnotations:
+    linkerd.io/inject: enabled
+    config.linkerd.io/proxy-additional-env: '[{"name":"LINKERD2_PROXY_CORES_MAX","value":"$CORES"}]'
+  service:
+    nodePorts:
+      http: $HAPROXY_NODEPORT
+  replicaCount: ${REPLICAS:-1}
+EOF
+      helm upgrade "$RELEASE" "$CHART" -n "$NS" --reset-values -f "$VALUES_FILE"
+    else
+      helm upgrade "$RELEASE" "$CHART" -n "$NS" --reuse-values \
+        --set 'controller.podAnnotations.linkerd\.io/inject=enabled' \
+        ${REPLICAS:+--set controller.replicaCount=$REPLICAS}
+    fi
     ;;
   # Unmesh: drop all user-supplied values, returning to chart
   # defaults.
@@ -53,7 +94,7 @@ case "${1:-}" in
       --set controller.service.nodePorts.http="$HAPROXY_NODEPORT" \
       ${REPLICAS:+--set controller.replicaCount=$REPLICAS}
     ;;
-  *) echo "usage: $0 <mesh|unmesh>" >&2; exit 1 ;;
+  *) echo "usage: $0 <mesh|unmesh> [CORES]" >&2; exit 1 ;;
 esac
 
 # Wait for the replacement pods.

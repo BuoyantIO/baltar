@@ -2,6 +2,7 @@
 # Usage: ./dev_3_modify_linkerd_cores.sh [NAMESPACE] [WORKLOAD] [CORES]
 #   e.g. ./dev_3_modify_linkerd_cores.sh emojivoto deploy/web 6
 #        ./dev_3_modify_linkerd_cores.sh emojivoto deploy/web
+#        ./dev_3_modify_linkerd_cores.sh haproxy-controller deploy/haproxy-ingress-kubernetes-ingress 2
 # Defaults to emojivoto deploy/web, the workload the load tests drive,
 # and to 1 core, which is the proxy's own default.
 #

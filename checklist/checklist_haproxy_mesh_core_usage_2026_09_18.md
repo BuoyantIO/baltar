@@ -35,7 +35,7 @@ all on one CPU timeline.
 
 ## Tasks
 
-- [ ] 1. Confirm the cluster is in the pre-toggle state
+- [x] 1. Confirm the cluster is in the pre-toggle state
 - [ ] 2. Mesh-toggle test at CORES_MAX=3, one load generator
 - [ ] 3. Mesh-toggle test at CORES_MAX=2, two load generators
 - [ ] 4. Record the net state change
@@ -65,11 +65,12 @@ all on one CPU timeline.
   independent processes hitting the same NodePort — this is what task 3
   uses to get real concurrent connections rather than a single
   process's `-c` flag.
-- Mesh+cores toggle: one `helm upgrade --reset-values -f <values file>`
-  sets the inject annotation and the `CORES_MAX` pin in a single
-  rollout, the same pattern task 17 used (`haproxy_mesh_2cores.yaml`).
-  Doing it in one upgrade, not `dev_2` then `dev_3` separately, avoids
-  two rollouts and keeps one clean step in the CSV.
+- Mesh+cores toggle: `dev_2_mesh_haproxy.sh mesh <CORES>` now takes an
+  optional `CORES` argument (added for this checklist) and sets the
+  inject annotation and the `CORES_MAX` pin in one rollout, internally
+  through a values file for the same reason task 17 needed one
+  (`--set` can't cleanly carry the annotation's JSON-string value).
+  One call, one rollout, instead of `dev_2` then `dev_3` separately.
 - Timing budget, per the user's spec: run the load for at least 90s —
   30s unmeshed baseline, the toggle (assumed ~30s), 30s settled meshed.
   Actual handover took 13-40s across tasks 17/19/20 (faster with fewer
@@ -103,28 +104,16 @@ Commands:
       -o jsonpath='{.spec.template.spec.initContainers[*].name}{"\n"}'
     ./dev_4_inspect_cores.sh emojivoto deploy/web
 
-Expected: haproxy 1/1 replica; the `initContainers` line is **empty**
-(no `linkerd-proxy`), i.e. unmeshed. emojivoto web/emoji/voting 5/5,
-`vote-bot` 0/0 (its Deployment still exists at 0 replicas), web proxy
-`LINKERD2_PROXY_CORES_MAX=3`.
-
-If haproxy is currently meshed (e.g. left over from a previous run of
-task 2 or 3), unmesh it:
-
-    ./dev_2_mesh_haproxy.sh unmesh
-
-If its replica count is wrong:
-
-    ./dev_7_scale_workloads.sh 5 1
-    VOTE_BOT_REPLICAS=0 ./dev_7_scale_workloads.sh 5 1
-
-Do not touch emojivoto's core pin (must stay `CORES_MAX=3`) and do not
-run more than one fix-up command at once, since each triggers its own
-rollout.
-
 Done when the `initContainers` check above prints nothing and
 `dev_4_inspect_cores.sh emojivoto deploy/web` shows the expected
 emojivoto state.
+
+### Result
+
+- **Haproxy**: 1/1 replica, unmeshed (no `linkerd-proxy` in initContainers)
+- **NodePort**: 31080
+- **Emojivoto**: web/emoji/voting 5/5, vote-bot 0/0
+- **Emojivoto proxy cores**: `LINKERD2_PROXY_CORES_MAX=3`
 
 ## 2. Mesh-toggle test at CORES_MAX=3, one load generator
 
@@ -139,21 +128,6 @@ experiment first, since task 3 needs the cap back at 2 to be a fair
 test of its own question.
 
 Precondition: task 1's unmeshed state.
-
-Write the values file that meshes haproxy at `CORES_MAX=3` in one
-upgrade:
-
-    cd scripts
-    cat > mesh_3cores.yaml <<'EOF'
-    controller:
-      podAnnotations:
-        linkerd.io/inject: enabled
-        config.linkerd.io/proxy-additional-env: '[{"name":"LINKERD2_PROXY_CORES_MAX","value":"3"}]'
-      service:
-        nodePorts:
-          http: 31080
-      replicaCount: 1
-    EOF
 
 Derive the target URL:
 
@@ -177,9 +151,7 @@ Four terminals:
     # terminal C — wait 30s after B started, then fire the toggle
     sleep 30
     cd scripts
-    helm upgrade haproxy-ingress haproxytech/kubernetes-ingress -n haproxy-controller \
-      --reset-values -f mesh_3cores.yaml
-    kubectl rollout status deploy/haproxy-ingress-kubernetes-ingress -n haproxy-controller --timeout=180s
+    ./dev_2_mesh_haproxy.sh mesh 3
 
     # terminal D — only after B's bombardier summary prints and C's rollout is done
     cd scripts
@@ -233,19 +205,6 @@ Precondition: haproxy unmeshed again. Task 2 leaves it meshed at
       -o jsonpath='{.spec.template.spec.initContainers[*].name}{"\n"}'
     # must print nothing
 
-Write the values file that meshes haproxy at `CORES_MAX=2`:
-
-    cat > mesh_2cores.yaml <<'EOF'
-    controller:
-      podAnnotations:
-        linkerd.io/inject: enabled
-        config.linkerd.io/proxy-additional-env: '[{"name":"LINKERD2_PROXY_CORES_MAX","value":"2"}]'
-      service:
-        nodePorts:
-          http: 31080
-      replicaCount: 1
-    EOF
-
 Derive the target URL once and reuse it in both load terminals:
 
     NODE_IP=$(kubectl get node kind-control-plane \
@@ -273,9 +232,7 @@ Five terminals:
     # terminal D — wait 30s after B/C started, then fire the toggle
     sleep 30
     cd scripts
-    helm upgrade haproxy-ingress haproxytech/kubernetes-ingress -n haproxy-controller \
-      --reset-values -f mesh_2cores.yaml
-    kubectl rollout status deploy/haproxy-ingress-kubernetes-ingress -n haproxy-controller --timeout=180s
+    ./dev_2_mesh_haproxy.sh mesh 2
 
     # terminal E — only after B and C's bombardier summaries print and D's rollout is done
     cd scripts
