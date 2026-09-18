@@ -36,9 +36,9 @@ all on one CPU timeline.
 ## Tasks
 
 - [x] 1. Confirm the cluster is in the pre-toggle state
-- [ ] 2. Mesh-toggle test at CORES_MAX=3, one load generator
-- [ ] 3. Mesh-toggle test at CORES_MAX=2, two load generators
-- [ ] 4. Record the net state change
+- [x] 2. Mesh-toggle test at CORES_MAX=3, one load generator
+- [x] 3. Mesh-toggle test at CORES_MAX=2, two load generators
+- [ ] 4. Record the net state change — moot, cluster being deleted
 
 ## Context
 
@@ -146,7 +146,7 @@ Four terminals:
 
     # terminal B — start the load; runs 100s total
     cd scripts
-    ./test_load_2_docker_nodeport.sh 1000 100s "$URL"
+    ./test_load_2_docker_nodeport.sh 1000 120s "$URL"
 
     # terminal C — wait 30s after B started, then fire the toggle
     sleep 30
@@ -183,8 +183,41 @@ separately, are).
 
 ### Result
 
-_(fill in after running: unmeshed baseline CPU, mean/peak meshed proxy
-CPU, whether 200% was exceeded, and throughput in each window)_
+First attempt (100s load) gave only a 10-second burst, not a plateau,
+because the traffic cutover took far longer than the load ran — see
+Q1 below. **Re-run at 2026-09-18 with 120s of load**, same CSV
+(`~/.cache/kube-cpu-sampler/toggle-3core.csv`, overwritten, 241 rows,
+one `roll` event), which caught a real steady state:
+
+- **Unmeshed baseline** (old pod's `kubernetes-ingress-controller`,
+  t_s 0-87): steady around 129-138% in the window right before
+  cutover (overall mean 121.0%, pulled down by the run's early ramp).
+- **Traffic cutover again lagged pod creation by ~40s**: the new
+  (meshed) pod was created at t_s=47-49, but its proxy and app
+  containers sat at ~0% through t_s=87, while the old pod kept
+  absorbing full load. At t_s=88 it flips: old pod drops to ~0, new
+  proxy jumps 151.7% -> 210.8% and climbs into a stable band by ~t_s=95.
+- **Steady meshed window (t_s 95-125, 32 samples, well clear of the
+  ramp): proxy mean 212.9%, peak 230.2%.** 36 of 76 total proxy
+  samples exceeded 200%, sustained for 30+ seconds — a real plateau,
+  not a burst. **200% WAS exceeded, decisively.** Slightly above task
+  23's raw connection-sweep finding (206-209% mean, 218% peak) at the
+  same `CORES_MAX=3`.
+- App container in the same steady window: mean 78.9%, peak 85.5% —
+  roughly half its unmeshed draw, the same "proxy takes over, app CPU
+  drops" pattern tasks 17/19/20 found.
+- **Bombardier**: 18,783.73 rps avg over 120s, 2,252,491 2xx, zero
+  4xx/5xx, 981 connection-refused (during the roll, as in every prior
+  toggle run), p50 45.15ms, p99 167.5ms, max 2.10s, 84.63MB/s. Total
+  requests match the stated rps × 120s, so the full run completed as
+  intended.
+- **Net state after this task**: haproxy meshed, `CORES_MAX=3`, 1
+  replica (feeds into task 3, which reverts to `CORES_MAX=2`).
+
+See Q1 below: the ~40s pod-ready-to-traffic-cutover gap recurred in
+both the 100s and 120s runs. It didn't block this result (the 120s
+run ran long enough to get a clean plateau anyway), but it is right at
+the edge of what task 3's 100s timing budget assumes.
 
 ## 3. Mesh-toggle test at CORES_MAX=2, two load generators
 
@@ -223,11 +256,11 @@ Five terminals:
 
     # terminal B — first load generator, 100s
     cd scripts
-    ./test_load_2_docker_nodeport.sh 1000 100s "$URL"
+    ./test_load_2_docker_nodeport.sh 1000 120s "$URL"
 
     # terminal C — second load generator, started alongside B, also 100s
     cd scripts
-    ./test_load_2_docker_nodeport.sh 1000 100s "$URL"
+    ./test_load_2_docker_nodeport.sh 1000 120s "$URL"
 
     # terminal D — wait 30s after B/C started, then fire the toggle
     sleep 30
@@ -249,10 +282,48 @@ rps added together, since they hit the same backend at once.
 
 ### Result
 
-_(fill in after running: unmeshed baseline CPU, mean/peak meshed proxy
-CPU, whether 200% was exceeded, combined throughput per window, and how
-the meshed CPU compares to task 20's 161.0%/169.0% and to task 2's
-result above)_
+Run at 2026-09-18, 120s per generator, CSV
+`~/.cache/kube-cpu-sampler/toggle-2core-2term.csv`, 245 rows, one
+`roll` event.
+
+- **Unmeshed baseline is much higher than the single-generator
+  baseline.** Steady window t_s 9-57 (n=47), old pod's
+  `kubernetes-ingress-controller`: **mean 203.88%, peak 220.19%** — well
+  above task 20's single-generator 128.8%/149.3%. Two terminals really
+  did generate more demand than one process's `-c` flag would; this
+  container isn't `CORES_MAX`-capped, so it was free to show it.
+- **Cutover was fast this time**: new pod created t_s=44, real traffic
+  ramp by t_s=57-58 (~13s gap) — nothing like task 2's ~40s lag.
+- **Steady meshed window (t_s 59-125, 65 samples, ~66s plateau): proxy
+  mean 168.1%, peak 178.45%. Zero rows exceeded 200%.** Higher than
+  task 20's single-generator peak (169.0% -> 178.45%) but still clearly
+  under the cap, and below task 2's `CORES_MAX=3` result (212.9%
+  mean/230.2% peak) as expected since the cap itself is lower here.
+- App container in the same window: mean 75.1%, peak 86.7% — again
+  roughly a third to half its unmeshed draw.
+- **The two generators did not hit the same URL.** One terminal's
+  bombardier summary shows it querying `/` (15,641.04 rps avg,
+  1,875,919 2xx, 1,014 connection-refused, 10.82MB/s); the other shows
+  `/api/list` (7,627.54 rps avg, 914,826 2xx, 965 connection-refused,
+  34.31MB/s — higher byte throughput despite fewer requests, consistent
+  with `/api/list`'s larger response body). Combined: ~23,268 rps avg,
+  2,790,745 total 2xx, 0 4xx/5xx, 1,979 connection-refused. Likely
+  cause: `$URL` was derived in one terminal and not re-exported into
+  the other, so that terminal's `test_load_2_docker_nodeport.sh` fell
+  back to its own default (`/`) when it received an empty third
+  argument. This is a real methodological gap — task 3 wasn't a clean
+  2x replication of one endpoint — but it doesn't undermine the CPU
+  conclusion: it still produced substantial combined concurrent demand
+  (confirmed by the unmeshed controller's 220% peak), and the proxy
+  still stayed under 200% against it.
+- **Answer to the hypothesis: no, still didn't cross 200%.** Even with
+  real concurrent demand pegging the unmeshed controller at ~204-220%,
+  the `CORES_MAX=2` proxy topped out at 178.45%. This rules out
+  connection concurrency as the missing ingredient and leaves
+  throughput/demand actually reaching the proxy as the remaining
+  explanation, matching task 20's original conclusion.
+- **Net state after this task**: haproxy meshed, `CORES_MAX=2`, 1
+  replica — matches task 20's original end state.
 
 ## 4. Record the net state change
 
@@ -276,5 +347,24 @@ task 3 was skipped or failed after task 2.
 
 ### Result
 
-_(fill in: final mesh state, final CORES_MAX, final replica counts, and
-which of them differ from task 20's state recorded in Context)_
+**Blocked, deliberately not done**: the cluster is being deleted, so
+there is no next session for this state to matter to. Both
+experiments already answered what they set out to answer (see tasks
+2 and 3's Results above); recording the final live state would have
+no reader.
+
+## Open questions
+
+- **Q1 Why does traffic cutover lag pod creation by ~40s?** Seen in
+  both of task 2's runs: the new pod is created and its containers are
+  running (per the CSV) well before the old pod's CPU drops to zero,
+  during which the new pod sits at ~0% doing nothing. First run:
+  pod created t_s=77, cutover t_s=116 (~39s). Second run: pod created
+  t_s=47-49, cutover t_s=88 (~40s). Tasks 17/19/20 saw 13-40s
+  handovers measured the same way, so 40s is within precedent, but at
+  the edge of it, and task 3's 100s load budget (30s pre-toggle + an
+  assumed ~30s transition + 30s settled) only has headroom for this if
+  the transition stays under ~40s. If task 3 sees a longer gap, its
+  100s run may repeat task 2's first attempt (a burst instead of a
+  plateau) — consider running task 3 for 120s instead of 100s from the
+  start, given this task's own experience.

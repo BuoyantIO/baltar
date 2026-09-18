@@ -1,6 +1,6 @@
 # Load test results
 
-Source: `checklist/complete/checklist_load_test_linkerd.md`, `checklist_repro_kube_setup.md`, `checklist_mvp.md`. Tool: `alpine/bombardier` via `scripts/test_load_1_local_tunnel.sh` / `test_load_2_docker_nodeport.sh`. All laptop-only; the VM checklist (`checklist_vm.md`) has never been run.
+Source: `checklist/complete/checklist_load_test_linkerd.md`, `checklist_repro_kube_setup.md`, `checklist_mvp.md`, `checklist/checklist_haproxy_mesh_core_usage_2026_09_18.md`. Tool: `alpine/bombardier` via `scripts/test_load_1_local_tunnel.sh` / `test_load_2_docker_nodeport.sh`. All laptop-only; the VM checklist (`checklist_vm_2026_09_17.md`) has never been run.
 
 ## Meshing HAProxy
 
@@ -52,6 +52,18 @@ Source: `checklist/complete/checklist_load_test_linkerd.md`, `checklist_repro_ku
 - 1 replica, 500 conns/150s (task 17): 13,139 RPS avg, p50 36.91ms, p99 65.92ms, 0 errors, 277 connection-refused during rollout. Proxy CPU peaked at 119.2%/76.5% across the two pods; meshing cost ~1.83 cores of proxy while app CPU stayed flat.
 - 2 replicas, 5 app replicas, 500 conns/150s (task 19): 17,095 RPS avg, p50 23.54ms, p99 112.20ms, 177 connection-refused. Highest single CPU sample 109.64%. Caveat: only 13 of 165 sampled ticks were in the fully-meshed steady state, so this reading rests on a thin window.
 - 1 replica, 1000 conns/150s (task 20): 15,079 RPS (12% below task 19's 500-conn run), p50 54.31ms, max 2.43s, 1012 connection-refused. Proxy mean 161.0%/peak 169.0%. Per-request CPU cost was similar across configurations (106.8-115.9 uCPU/req), read as evidence the ceiling is a throughput problem, not a concurrency one.
+
+## Does more load cross the CORES_MAX cap
+
+**Problem**: whether the ingress proxy's CPU can be pushed past 200% of one core — either by raising `CORES_MAX` to 3 (does the proxy actually have more than 200% of demand?), or by generating more real concurrent connections at `CORES_MAX=2` (is connection concurrency, not just throughput, the missing ingredient?).
+
+**Result**: raising the cap to 3 crossed 200% decisively (sustained, not a spike). Adding a second real concurrent generator at the existing cap of 2 still did not — reinforcing that the ceiling is throughput/demand reaching the proxy, not connection concurrency.
+
+**Detail** (`checklist/checklist_haproxy_mesh_core_usage_2026_09_18.md`), both via an unmesh→mesh toggle mid-run so each run carries an unmeshed baseline and a settled meshed plateau on one CPU timeline, one haproxy replica, `/api/list`:
+
+- **CORES_MAX=3, one generator, 1000 conns/120s (task 2)**: a first 100s attempt only caught a 10-second CPU burst, because traffic cutover lagged pod creation by ~40s and the run ended before a real plateau formed. Re-run at 120s caught a genuine 30+ second plateau: **proxy mean 212.9%, peak 230.2%**, 36 of 76 samples above 200% — slightly above the earlier raw connection-sweep finding of 206-209% mean/218% peak at the same cap (see "CORES_MAX cap" above). Bombardier: 18,783.73 rps avg, 2,252,491 2xx, 981 connection-refused (during the roll), p50 45.15ms, p99 167.5ms.
+- **CORES_MAX=2, two generators, 1000 conns/120s each (task 3)**: unmeshed baseline hit mean 203.88%/peak 220.19% on the (uncapped) controller container — confirming two terminals genuinely generated more demand than one process's `-c` flag would. Despite that, the meshed proxy's steady window (~66s plateau) topped out at **mean 168.1%, peak 178.45%** — higher than the single-generator baseline (161.0%/169.0%) but still under 200%. Methodological gap: the two generators didn't hit the same URL (one queried `/`, the other `/api/list`, likely because `$URL` wasn't re-exported into the second terminal), so combined throughput (~23,268 rps avg, 2,790,745 2xx, 1,979 connection-refused) mixes two different response sizes — this doesn't undermine the CPU reading, since demand was still substantial either way.
+- Both runs showed the same recurring anomaly: traffic cutover during the mesh toggle lagged pod creation by 13-40s (new pod idle at ~0% CPU while the old pod kept serving), well within precedent from `checklist_mvp.md` tasks 17/19/20 (13-40s) but at the high end of it — unexplained, and it invalidated task 2's first attempt entirely.
 
 ## Not run / inconclusive
 
