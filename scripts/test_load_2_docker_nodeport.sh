@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
+# Usage: test_load_2_docker_nodeport.sh [CONNECTIONS] [DURATION] [URL]
+#
 # Load test straight at the NodePort, no tunnel in the path: a plain
 # Docker container on the `kind` network, bypassing kubectl
 # port-forward.
-#
-# Usage: test_load_2_docker_nodeport.sh [CONNECTIONS] [DURATION] [URL]
 #
 # It is named for what it hits, not where the generator runs, because
 # the `kind` network goes away if the cluster moves to a VM. Docker is
