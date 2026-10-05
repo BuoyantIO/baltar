@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Usage: ./build_3_install_custom_linkerd.sh
+#        BUILD_OUT_DIR=/path/to/out ./build_3_install_custom_linkerd.sh
+#
+# Env vars and defaults:
+#   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
+#
+# Build step 3 (after init_1_create_cluster.sh, build_2_linkerd2.sh): installs Linkerd from the custom build.
+# PROXY_INIT_IMAGE is unused: linkerd-init renders from proxy.image, which contains proxy-init.
+set -euo pipefail
+
+# Loads read_env and BUILD_OUT_DIR.
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=util_build.sh
+. "$SCRIPT_DIR/util_build.sh"
+
+# Targets the cluster from init_1_create_cluster.sh.
+KIND_CLUSTER=kind
+KUBE_CONTEXT=kind-kind
+
+# read_env fails on a missing file or key, so a skipped build stops here.
+CONTROLLER_IMAGE=$(read_env images.env CONTROLLER_IMAGE)
+PROXY_IMAGE=$(read_env images.env PROXY_IMAGE)
+LINKERD_CLI=$(read_env images.env LINKERD_CLI)
+[ -x "$LINKERD_CLI" ] || { echo "linkerd CLI not executable: $LINKERD_CLI" >&2; exit 1; }
+
+# Loads the localhost/ images into kind; the chart's IfNotPresent policy then never pulls.
+kind load docker-image --name "$KIND_CLUSTER" "$CONTROLLER_IMAGE" "$PROXY_IMAGE"
+
+# Checks the cluster meets Linkerd's prerequisites.
+"$LINKERD_CLI" --context "$KUBE_CONTEXT" check --pre
+
+# Installs the Linkerd CRDs.
+"$LINKERD_CLI" --context "$KUBE_CONTEXT" install --crds \
+  | kubectl --context "$KUBE_CONTEXT" apply -f -
+
+# Points every image at the custom build; controllerImage also covers the policy container.
+# --set-string keeps a numeric-looking tag a string.
+"$LINKERD_CLI" --context "$KUBE_CONTEXT" install \
+  --set-string "controllerImage=${CONTROLLER_IMAGE%:*}" \
+  --set-string "controllerImageVersion=${CONTROLLER_IMAGE##*:}" \
+  --set-string "proxy.image.name=${PROXY_IMAGE%:*}" \
+  --set-string "proxy.image.version=${PROXY_IMAGE##*:}" \
+  | kubectl --context "$KUBE_CONTEXT" apply -f -
+
+# Blocks until the control plane is healthy.
+"$LINKERD_CLI" --context "$KUBE_CONTEXT" check
