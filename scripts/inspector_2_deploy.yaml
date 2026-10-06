@@ -1,0 +1,98 @@
+# Namespace inspect: meshed inspector pod (inspector + echo) and a meshed client.
+# The inspector port carries Linkerd's PROXY v2 header; image is substituted by inspector_2_deploy.sh.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: inspect
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: inspector
+  namespace: inspect
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: client
+  namespace: inspect
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inspector
+  namespace: inspect
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inspector
+  template:
+    metadata:
+      labels:
+        app: inspector
+      # PROXY v2 makes linkerd-proxy prepend the header; opaque keeps it from sniffing the port.
+      annotations:
+        linkerd.io/inject: enabled
+        config.linkerd.io/proxy-protocol-v2-inbound-ports: "15432"
+        config.linkerd.io/opaque-ports: "15432"
+    spec:
+      serviceAccountName: inspector
+      containers:
+        - name: inspector
+          image: localhost/l4-proto-inspector:dev
+          imagePullPolicy: IfNotPresent
+          args:
+            - --listen
+            - 0.0.0.0:15432
+            - --upstream
+            - 127.0.0.1:9000
+            - --mode
+            - pp
+            - --mode
+            - raw
+          ports:
+            - name: inspect
+              containerPort: 15432
+        # Echo backend on loopback only, so clients reach it solely through the inspector.
+        - name: echo
+          image: alpine/socat
+          args:
+            - TCP-LISTEN:9000,fork,reuseaddr,bind=127.0.0.1
+            - EXEC:cat
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inspector
+  namespace: inspect
+spec:
+  selector:
+    app: inspector
+  ports:
+    - name: inspect
+      port: 15432
+      targetPort: 15432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  namespace: inspect
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      serviceAccountName: client
+      containers:
+        - name: client
+          image: busybox
+          command: ["sleep", "infinity"]
