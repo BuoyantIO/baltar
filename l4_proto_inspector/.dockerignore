@@ -1,0 +1,3 @@
+# Sends only the release binary as build context.
+*
+!target/release/l4_proto_inspector
