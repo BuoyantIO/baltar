@@ -250,6 +250,7 @@ one. `wip_` marks a script that works but is not fit to hand over.
 - `dev_5_measure_start.sh <run> <ns> <workload>` starts the CPU sampler on one workload and blocks; `RESOLVE_INTERVAL` (default 5s) sets how fast a roll is noticed
 - `dev_6_measure_stop.sh` ends the run and writes `<run>.csv`, one row per container per second
 - `dev_7_scale_workloads.sh [EMOJIVOTO] [HAPROXY]` sets replica counts, defaulting to 5 and 1; `VOTE_BOT_REPLICAS=0` removes the built-in load generator, which is capacity for the app but noise for a measurement
+- `dev_8_wireshark_capture.sh [NS] [WORKLOAD]` captures one pod's traffic as pcap via an ephemeral `sniff` container, to `OUT` or stdout for a live Wireshark; pod-to-pod 4143 is mTLS, only the in-pod proxy-to-app hop is cleartext
 
 ### Testing
 - `test_load_1_local_tunnel.sh [PORT] [PATH]` drives load from the host, only when you deliberately want to measure a host-side path
