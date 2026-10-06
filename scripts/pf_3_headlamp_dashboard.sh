@@ -7,22 +7,33 @@
 # a script that port-forwards or exposes a service. The number follows
 # the init_ step that installs what it exposes: headlamp is init_5, so
 # this is pf_3 of the group. It blocks until ctrl-C, so a rebuild
-# chain must not run it. It prefers pbcopy and open, falling back to
-# xclip/xsel and xdg-open on Linux.
+# chain must not run it. It uses pbcopy and open on macOS, and
+# xclip/xsel and xdg-open on Linux only when a display is set;
+# otherwise it prints the token and the URL.
 set -euo pipefail
 
 # Guards the macOS-only clipboard and browser tools.
 #
 # The guard is what keeps these scripts working on a headless Linux
-# host (the VM of task 26). On Linux we fall back to xclip/xsel if
-# present and otherwise print, which is the only sane behaviour with
-# no clipboard and no browser.
+# host (the VM of task 26). We use pbcopy and open only on macOS:
+# Debian ships /usr/bin/open as a run-mailcap wrapper that fails
+# headless. On Linux we use xclip/xsel and xdg-open only when a
+# display is set, and otherwise print: over ssh they are often
+# installed but fail with no display, which set -e turns fatal.
+is_macos() {
+  [[ "$(uname)" == Darwin ]]
+}
+
+has_display() {
+  [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]
+}
+
 copy_to_clipboard() {
-  if command -v pbcopy >/dev/null 2>&1; then
+  if is_macos && command -v pbcopy >/dev/null 2>&1; then
     pbcopy
-  elif command -v xclip >/dev/null 2>&1; then
+  elif has_display && command -v xclip >/dev/null 2>&1; then
     xclip -selection clipboard
-  elif command -v xsel >/dev/null 2>&1; then
+  elif has_display && command -v xsel >/dev/null 2>&1; then
     xsel --clipboard --input
   else
     echo "no clipboard tool found; the value follows:" >&2
@@ -31,9 +42,9 @@ copy_to_clipboard() {
 }
 
 open_url() {
-  if command -v open >/dev/null 2>&1; then
+  if is_macos && command -v open >/dev/null 2>&1; then
     open "$1"
-  elif command -v xdg-open >/dev/null 2>&1; then
+  elif has_display && command -v xdg-open >/dev/null 2>&1; then
     xdg-open "$1"
   else
     echo "no browser opener found; visit $1 yourself" >&2
