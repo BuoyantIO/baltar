@@ -1,0 +1,55 @@
+# Namespace demo and one meshed echo server, the target of test_load_3_fortio.sh.
+# Port 5678 is opaque on the Service and the pod, so each client connection stays its own mTLS connection into
+#   the echo proxy instead of being multiplexed onto a few HTTP/2 connections.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+  annotations:
+    linkerd.io/inject: enabled
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo
+  namespace: demo
+  labels:
+    app: echo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo
+  template:
+    metadata:
+      labels:
+        app: echo
+      annotations:
+        config.linkerd.io/opaque-ports: "5678"
+    spec:
+      containers:
+        - name: echo
+          image: hashicorp/http-echo:1.0
+          args: ["-text=hello", "-listen=:5678"]
+          ports:
+            - name: http
+              containerPort: 5678
+          resources:
+            requests:
+              cpu: 50m
+              memory: 16Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo
+  namespace: demo
+  annotations:
+    config.linkerd.io/opaque-ports: "5678"
+spec:
+  selector:
+    app: echo
+  ports:
+    - name: http
+      port: 5678
+      targetPort: 5678

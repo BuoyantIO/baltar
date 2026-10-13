@@ -47,7 +47,7 @@ devcontainer_exec "$LINKERD2_PROXY_DIR" \
 PROXY_BUILD_IMAGE=$DOCKER_REPO:$DOCKER_TAG
 docker image inspect "$PROXY_BUILD_IMAGE" >/dev/null
 
-# Hands the build off to verify_1_proxy.sh and build_2_linkerd2.sh.
+# Hands the build off to build_4_verify_proxy.sh and build_2_linkerd2.sh.
 write_env proxy.env \
   "LINKERD2_PROXY_SHA=$PROXY_FULL_SHA" \
   "PROXY_BUILD_IMAGE=$PROXY_BUILD_IMAGE" \

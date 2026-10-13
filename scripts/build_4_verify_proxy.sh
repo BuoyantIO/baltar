@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Usage: ./verify_1_proxy.sh
-#        BUILD_OUT_DIR=/path/to/out ./verify_1_proxy.sh
+# Usage: ./build_4_verify_proxy.sh
+#        BUILD_OUT_DIR=/path/to/out ./build_4_verify_proxy.sh
 #
 # Env vars and defaults:
 #   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
 #
-# Verify step 1. Reads $BUILD_OUT_DIR/proxy.env from build_1_proxy.sh and
+# Build step 4. Reads $BUILD_OUT_DIR/proxy.env from build_1_proxy.sh and
 # checks the custom proxy image: it differs from the base image, carries
 # the PROXY protocol v2 feature, and ties to LINKERD2_PROXY_SHA. Prints
 # one line per check and exits non-zero if any check fails.

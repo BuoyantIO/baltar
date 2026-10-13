@@ -44,6 +44,17 @@ place by changing what a reader would do.
 - Put the follow-up questions last, as a short numbered list, so I can answer by number. Only questions I might actually want answered next, not a survey.
 - Do not restate what was just said in a previous reply.
 
+# Layers
+
+Read the folder's `CLAUDE.md` before working there.
+
+- `scripts/`: numbered shell steps by category (init, dev, test, build, pf, cleanup, util). Read `scripts/CLAUDE.md`.
+- `scripts/app/`: inspector and repro scripts. Covered by `scripts/CLAUDE.md`.
+- `scripts/examples/`: composed setups (grafana, custom_image, bel, load_test). Read `scripts/examples/CLAUDE.md`.
+- `l4_proto_inspector/`: the L4 protocol inspector app. Read `l4_proto_inspector/CLAUDE.md`.
+- `checklist/`: checklists for sessions. Read `checklist/CLAUDE.md`.
+- Prefer composing an example from existing scripts over writing new ones.
+
 # Workflow
 
 - Use well scoped and small sub-agents so the main loop stays lean (e.g. explore code, fetch info, running tests).

@@ -42,6 +42,7 @@ version_of() {
     jq)         jq --version ;;
     python3)    python3 --version ;;
     bombardier) bombardier --version 2>&1 | head -1 ;;
+    step)       step version | head -1 ;;
     *)          echo "" ;;  # base64, pbcopy, open report no useful version
   esac
 }
@@ -92,6 +93,7 @@ echo "=== 2. Optional: binaries only the load_, inspect_ and pf_ scripts need ==
 check_bin bombardier OPTIONAL "test_load_1 only; load_2 runs it as a container instead"
 check_bin jq         OPTIONAL "wip_1 (parses Prometheus query results)"
 check_bin python3    OPTIONAL "wip_4 (samples proxy metrics, summarises the run)"
+check_bin step       OPTIONAL "init_2_install_bel (generates the BEL trust anchor and issuer)"
 check_bin base64     OPTIONAL "pf_2 (decodes the grafana admin password)"
 check_bin pbcopy     MACOS    "pf_2, pf_3"
 check_bin open       MACOS    "pf_2, pf_3"

@@ -73,7 +73,7 @@ devcontainer_exec "$LINKERD2_DIR" sh -c '
 ' sh "$OVERLAY_DOCKERFILE" "$PROXY_IMAGE"
 docker image inspect "$PROXY_IMAGE" >/dev/null
 
-# Hands the build off to verify_2_linkerd2.sh and the repro scripts.
+# Hands the build off to build_5_verify_linkerd2.sh and the repro scripts.
 write_env images.env \
   "LINKERD2_SHA=$LINKERD2_SHA" \
   "LINKERD2_PROXY_SHA=$LINKERD2_PROXY_SHA" \

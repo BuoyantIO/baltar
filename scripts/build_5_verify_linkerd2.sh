@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Usage: ./verify_2_linkerd2.sh
-#        BUILD_OUT_DIR=/path/to/out ./verify_2_linkerd2.sh
+# Usage: ./build_5_verify_linkerd2.sh
+#        BUILD_OUT_DIR=/path/to/out ./build_5_verify_linkerd2.sh
 #
 # Env vars and defaults:
 #   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
 #
-# Verify step 2. Reads $BUILD_OUT_DIR/images.env from build_2_linkerd2.sh
+# Build step 5. Reads $BUILD_OUT_DIR/images.env from build_2_linkerd2.sh
 # and proxy.env from build_1_proxy.sh. Checks that the linkerd2 images
 # exist, the CLI reports the build tag, the CLI and the controller binary
 # contain the PROXY protocol v2 annotation key, and the proxy image carries
