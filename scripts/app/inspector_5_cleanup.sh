@@ -17,7 +17,7 @@ step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 # Fails fast on a missing kubectl or context.
 command -v kubectl >/dev/null || { echo "kubectl not found: install it" >&2; exit 1; }
 k config get-contexts "$CONTEXT" >/dev/null 2>&1 || {
-  echo "context $CONTEXT not found: run init_1_create_cluster.sh" >&2
+  echo "context $CONTEXT not found: run ../init_1_create_cluster.sh" >&2
   exit 1
 }
 

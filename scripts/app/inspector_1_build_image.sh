@@ -10,7 +10,7 @@ set -euo pipefail
 
 # Locates the crate relative to this script, not the cwd.
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-CRATE_DIR="$SCRIPT_DIR/../l4_proto_inspector"
+CRATE_DIR="$SCRIPT_DIR/../../l4_proto_inspector"
 INSPECTOR_IMAGE=${INSPECTOR_IMAGE:-localhost/l4-proto-inspector:dev}
 
 # Targets the cluster from init_1_create_cluster.sh.

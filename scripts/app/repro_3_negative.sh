@@ -23,7 +23,7 @@ die() { echo "$*" >&2; exit 1; }
 # Fails fast, naming the missing prerequisite, so it does not read like a check failure.
 step "prerequisites"
 k cluster-info >/dev/null 2>&1 \
-  || die "context $CONTEXT unreachable: run init_1_create_cluster.sh"
+  || die "context $CONTEXT unreachable: run ../init_1_create_cluster.sh"
 for ns in db billing; do
   k get namespace "$ns" >/dev/null 2>&1 \
     || die "namespace $ns missing: run repro_1_deploy_pgppi.sh"

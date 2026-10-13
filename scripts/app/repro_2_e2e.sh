@@ -16,11 +16,11 @@ set -euo pipefail
 
 # Loads BUILD_OUT_DIR.
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=util_build.sh
-. "$SCRIPT_DIR/util_build.sh"
+# shellcheck source=../util_build.sh
+. "$SCRIPT_DIR/../util_build.sh"
 
 # Inputs with defaults; the context is fixed to the cluster from init_1_create_cluster.sh.
-PGPPI_DIR=${PGPPI_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)/pg-ppi}
+PGPPI_DIR=${PGPPI_DIR:-$(cd "$SCRIPT_DIR/../../.." && pwd)/pg-ppi}
 GO_IMAGE=${GO_IMAGE:-golang:1.26}
 KUBECTL=${KUBECTL:-$(command -v kubectl || true)}
 KUBE_CONTEXT=kind-kind

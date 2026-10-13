@@ -29,7 +29,7 @@ die() { echo "$*" >&2; exit 1; }
 step "prerequisites"
 command -v kubectl >/dev/null || die "kubectl not found: install it"
 command -v jq >/dev/null || die "jq not found: install it"
-k cluster-info >/dev/null 2>&1 || die "context $CONTEXT unreachable: run init_1_create_cluster.sh"
+k cluster-info >/dev/null 2>&1 || die "context $CONTEXT unreachable: run ../init_1_create_cluster.sh"
 k get namespace "$NS" >/dev/null 2>&1 || die "namespace $NS missing: run inspector_2_deploy.sh"
 k -n "$NS" rollout status deploy/inspector --timeout=60s >/dev/null 2>&1 \
   || die "$NS/deploy/inspector not ready: run inspector_2_deploy.sh"

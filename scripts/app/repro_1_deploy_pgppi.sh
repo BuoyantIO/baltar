@@ -60,7 +60,7 @@
 set -euo pipefail
 
 # Inputs with defaults; PGPPI_DIR is a pg-ppi checkout next to launchy-dev.
-PGPPI_DIR=${PGPPI_DIR:-$(cd "$(dirname "$0")/../.." && pwd)/pg-ppi}
+PGPPI_DIR=${PGPPI_DIR:-$(cd "$(dirname "$0")/../../.." && pwd)/pg-ppi}
 PGPPI_IMAGE=${PGPPI_IMAGE:-ghcr.io/daniel-garcia/pg-ppi:dev}
 CERT_MANAGER_VERSION=${CERT_MANAGER_VERSION:-v1.21.2}
 CNPG_VERSION=${CNPG_VERSION:-1.30.1}

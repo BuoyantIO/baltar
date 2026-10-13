@@ -24,7 +24,7 @@ die() { echo "$*" >&2; exit 1; }
 # Fails fast, naming the missing prerequisite, so it does not read like a check failure.
 step "prerequisites"
 command -v kubectl >/dev/null || die "kubectl not found: install it"
-k cluster-info >/dev/null 2>&1 || die "context $CONTEXT unreachable: run init_1_create_cluster.sh"
+k cluster-info >/dev/null 2>&1 || die "context $CONTEXT unreachable: run ../init_1_create_cluster.sh"
 k get namespace "$NS" >/dev/null 2>&1 || die "namespace $NS missing: run inspector_2_deploy.sh"
 for d in inspector client; do
   k -n "$NS" rollout status "deploy/$d" --timeout=60s >/dev/null 2>&1 \
