@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str::FromStr;
 
 use super::{Inspector, Pp, Raw};
@@ -18,6 +19,15 @@ impl Mode {
         match self {
             Mode::Raw => Box::new(Raw),
             Mode::Pp => Box::new(Pp::default()),
+        }
+    }
+}
+
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Mode::Raw => f.write_str("raw"),
+            Mode::Pp => f.write_str("pp"),
         }
     }
 }
@@ -47,6 +57,10 @@ mod tests {
         // Known names map to their variants.
         assert_eq!("raw".parse::<Mode>().unwrap(), Mode::Raw);
         assert_eq!("pp".parse::<Mode>().unwrap(), Mode::Pp);
+
+        // Display prints the flag value back, as startup errors quote it.
+        assert_eq!(Mode::Raw.to_string(), "raw");
+        assert_eq!(Mode::Pp.to_string(), "pp");
 
         // An unknown name errors instead of defaulting.
         assert_eq!("tls".parse::<Mode>(), Err(InspectorError::UnknownMode));

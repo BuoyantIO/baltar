@@ -1,3 +1,5 @@
+/// Assertion plugins that turn chain events into pass/fail findings.
+pub mod assert;
 mod chain;
 mod event;
 mod mode;

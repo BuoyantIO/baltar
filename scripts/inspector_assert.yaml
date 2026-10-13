@@ -1,0 +1,58 @@
+# One-shot meshed inspector Pod in ns inspect: the inspector container exits after its first
+# connection, and its exit code is the pp_test verdict (0 pass, 1 fail, 2 setup error).
+# Needs ns inspect and SA inspector from inspector_2_deploy.yaml; image and identity are
+# substituted by inspector_6_assert.sh.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: inspector-assert
+  namespace: inspect
+  labels:
+    app: inspector-assert
+  # PROXY v2 makes linkerd-proxy prepend the header; opaque keeps it from sniffing the port.
+  annotations:
+    linkerd.io/inject: enabled
+    config.linkerd.io/proxy-protocol-v2-inbound-ports: "15432"
+    config.linkerd.io/opaque-ports: "15432"
+spec:
+  restartPolicy: Never
+  serviceAccountName: inspector
+  containers:
+    - name: inspector
+      image: localhost/l4-proto-inspector:dev
+      imagePullPolicy: IfNotPresent
+      args:
+        - --listen
+        - 0.0.0.0:15432
+        - --upstream
+        - 127.0.0.1:9000
+        - --mode
+        - pp
+        - --mode
+        - raw
+        - --assert
+        - pp_test
+        - --pp-identity
+        - client.inspect.serviceaccount.identity.linkerd.cluster.local
+      ports:
+        - name: inspect
+          containerPort: 15432
+    # Echo backend on loopback only, so clients reach it solely through the inspector.
+    - name: echo
+      image: alpine/socat
+      args:
+        - TCP-LISTEN:9000,fork,reuseaddr,bind=127.0.0.1
+        - EXEC:cat
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inspector-assert
+  namespace: inspect
+spec:
+  selector:
+    app: inspector-assert
+  ports:
+    - name: inspect
+      port: 15432
+      targetPort: 15432

@@ -1,3 +1,5 @@
-# Sends only the release binary as build context.
+# Sends only the sources the build stage compiles; target/ stays out.
 *
-!target/release/l4_proto_inspector
+!Cargo.toml
+!Cargo.lock
+!src

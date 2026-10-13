@@ -1,5 +1,8 @@
 use std::fmt;
 
+use crate::core::Mode;
+use crate::core::assert::AssertName;
+
 /// The crate's error: what the CLI or a library caller can act on.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InspectorError {
@@ -7,10 +10,32 @@ pub enum InspectorError {
     Pp(PpError),
     /// `--mode` named an inspector other than `raw` or `pp`.
     UnknownMode,
+    /// `--assert` named no registered assertion.
+    UnknownAssert,
+    /// An `--assert` plugin was activated without the `--mode` it reads events from.
+    MissingMode {
+        /// The plugin that was activated.
+        assertion: AssertName,
+        /// The mode it needs.
+        mode: Mode,
+    },
+    /// An `--assert` plugin was activated without a flag it needs.
+    MissingFlag {
+        /// The plugin that was activated.
+        assertion: AssertName,
+        /// The flag to add, as shown to the user.
+        flag: &'static str,
+    },
     /// The listen address could not be bound or read back.
     Bind,
     /// The listener stopped accepting clients.
     Accept,
+    /// The upstream app could not be dialed for an accepted client.
+    Dial,
+    /// Copying bytes between client and app failed mid-connection.
+    Relay,
+    /// SIGTERM or SIGINT handling could not be installed.
+    Signal,
 }
 
 impl fmt::Display for InspectorError {
@@ -18,8 +43,18 @@ impl fmt::Display for InspectorError {
         match self {
             InspectorError::Pp(e) => write!(f, "{e}"),
             InspectorError::UnknownMode => write!(f, "unknown mode, expected raw or pp"),
+            InspectorError::UnknownAssert => write!(f, "unknown assertion"),
+            InspectorError::MissingMode { assertion, mode } => {
+                write!(f, "--assert {assertion} needs --mode {mode}")
+            }
+            InspectorError::MissingFlag { assertion, flag } => {
+                write!(f, "--assert {assertion} needs {flag}")
+            }
             InspectorError::Bind => write!(f, "cannot listen on this address"),
             InspectorError::Accept => write!(f, "listener failed"),
+            InspectorError::Dial => write!(f, "cannot reach the upstream app"),
+            InspectorError::Relay => write!(f, "connection failed while copying bytes"),
+            InspectorError::Signal => write!(f, "cannot handle SIGTERM or SIGINT"),
         }
     }
 }
