@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# Usage: ./build_3_install_custom_linkerd.sh
-#        BUILD_OUT_DIR=/path/to/out ./build_3_install_custom_linkerd.sh
+# Loads read_env and BUILD_OUT_DIR.
+# shellcheck source=scripts/util_build.sh
+. scripts/util_build.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/build_3_install_custom_linkerd.sh
+#        BUILD_OUT_DIR=/path/to/out ./scripts/build_3_install_custom_linkerd.sh
 #
 # Env vars and defaults:
 #   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
@@ -8,11 +13,6 @@
 # Build step 3 (after init_1_create_cluster.sh, build_2_linkerd2.sh): installs Linkerd from the custom build.
 # PROXY_INIT_IMAGE is unused: linkerd-init renders from proxy.image, which contains proxy-init.
 set -euo pipefail
-
-# Loads read_env and BUILD_OUT_DIR.
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=util_build.sh
-. "$SCRIPT_DIR/util_build.sh"
 
 # Targets the cluster from init_1_create_cluster.sh.
 KIND_CLUSTER=kind

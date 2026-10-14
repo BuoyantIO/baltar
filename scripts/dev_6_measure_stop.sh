@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Usage: ./dev_6_measure_stop.sh
+# Loads the sampler state helpers.
+# shellcheck source=scripts/util_measure.sh
+. scripts/util_measure.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/dev_6_measure_stop.sh
 #
-# Ends the run started by ./dev_5_measure_start.sh, finalises the CSV and
+# Ends the run started by ./scripts/dev_5_measure_start.sh, finalises the CSV and
 # prints its path on stdout. It takes no arguments: only one run is
 # active at a time and `start` already recorded the name, namespace and
 # workload, so asking again is only a way to typo the name and finalise
@@ -52,18 +57,14 @@
 # the `kubectl exec` that reaps the in-pod collector loop.
 set -euo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=util_measure.sh
-. "$HERE/util_measure.sh"
-
-START_SCRIPT="$HERE/dev_5_measure_start.sh"
+START_SCRIPT=./scripts/dev_5_measure_start.sh
 # Longest interval still treated as one measured step.
 #
 # Beyond this the counter advanced over time nothing observed, so the
 # step is a hole.
 GAP_MAX_S="${GAP_MAX_S:-2.5}"
 
-usage() { sed -n '2,8p' "$0" >&2; exit 1; }
+usage() { sed -n '6,13p' "$0" >&2; exit 1; }
 
 # ------------------------------------------------------------- csv build
 

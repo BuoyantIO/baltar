@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Usage: ./init_1_create_cluster.sh
-#        GATEWAY_API_VERSION=v1.5.1 ./init_1_create_cluster.sh
-#        KIND_LISTEN_ADDRESS=0.0.0.0 ./init_1_create_cluster.sh
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/init_1_create_cluster.sh
+#        GATEWAY_API_VERSION=v1.5.1 ./scripts/init_1_create_cluster.sh
+#        KIND_LISTEN_ADDRESS=0.0.0.0 ./scripts/init_1_create_cluster.sh
 #
 # Setup step 1. Creates the kind cluster and installs the Gateway API
 # CRDs.
@@ -15,7 +16,7 @@
 # published NodePort, so the config file exists for that alone.
 set -euo pipefail
 
-KIND_CONFIG=${KIND_CONFIG:-$(cd "$(dirname "$0")" && pwd)/init_1_create_cluster.yaml}
+KIND_CONFIG=${KIND_CONFIG:-scripts/init_1_create_cluster.yaml}
 [ -f "$KIND_CONFIG" ] || { echo "kind config not found: $KIND_CONFIG" >&2; exit 1; }
 
 # Rewrites a copy of the config when the listen address is overridden.

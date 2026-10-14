@@ -20,13 +20,12 @@ CONTEXT=kind-kind
 NS=inspect
 SIGNATURE=0d0a0d0a000d0a515549540a
 
-# Helpers: kubectl on CONTEXT, a bold step banner, and exit with a message.
+# Helpers: kubectl on CONTEXT, and exit with a message.
 k() { kubectl --context "$CONTEXT" "$@"; }
-step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { echo "$*" >&2; exit 1; }
 
 # Fails fast, naming the missing prerequisite, so it does not read like a check failure.
-step "prerequisites"
+echo "[-] prerequisites"
 command -v kubectl >/dev/null || die "kubectl not found: install it"
 command -v jq >/dev/null || die "jq not found: install it"
 k cluster-info >/dev/null 2>&1 || die "context $CONTEXT unreachable: run ../init_1_create_cluster.sh"
@@ -38,7 +37,7 @@ k -n "$NS" rollout status deploy/inspector --timeout=60s >/dev/null 2>&1 \
 find_conn() {
   local hex chunk
   if [ -z "$MARKER" ]; then
-    step "latest PpHeader conn"
+    echo "[-] latest PpHeader conn"
     logs=$(k -n "$NS" logs deploy/inspector -c inspector)
     conn=$(jq -rR 'fromjson? | select(.event == "PpHeader") | .conn' <<<"$logs" | tail -n1)
     [ -n "$conn" ] || { echo "FAIL: no PpHeader in the inspector log" >&2; return 1; }
@@ -46,7 +45,7 @@ find_conn() {
   fi
 
   # Polls the inspector log for the marker's request Chunk; log lines may lag the echo.
-  step "request Chunk for $MARKER"
+  echo "[-] request Chunk for $MARKER"
   hex=$(printf '%s\n' "$MARKER" | od -An -tx1 -v | tr -d ' \n')
   for _ in $(seq 1 10); do
     logs=$(k -n "$NS" logs deploy/inspector -c inspector)
@@ -77,6 +76,6 @@ logs=""
 conn=""
 pp=PASS
 check_pp || pp=FAIL
-step "summary"
+echo "[-] summary"
 echo "pp: $pp"
 [ "$pp" = PASS ]

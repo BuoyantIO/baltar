@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Usage: ./init_4_install_grafana.sh
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/init_4_install_grafana.sh
 #
 # Setup step 4. Installs Grafana wired to the linkerd-viz Prometheus.
 #
@@ -11,12 +12,8 @@
 # Destructive: deletes and recreates the `grafana` namespace.
 set -euo pipefail
 
-# The work dir is anchored to the repo root, not the caller's cwd.
-#
-# The script can then be invoked from anywhere and still clean up after
-# itself.
-REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
-WORKDIR="$REPO_ROOT/grafana-install"
+# Work dir under the repo root; deleted at the end.
+WORKDIR=grafana-install
 
 # Fetches the chart into $WORKDIR/grafana.
 rm -rf "$WORKDIR"

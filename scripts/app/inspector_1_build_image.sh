@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Usage: ./inspector_1_build_image.sh
-#        INSPECTOR_IMAGE=localhost/l4-proto-inspector:test ./inspector_1_build_image.sh
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/app/inspector_1_build_image.sh
+#        INSPECTOR_IMAGE=localhost/l4-proto-inspector:test ./scripts/app/inspector_1_build_image.sh
 #
 # Env vars and defaults:
 #   INSPECTOR_IMAGE  localhost/l4-proto-inspector:dev
@@ -8,9 +9,8 @@
 # Inspector step 1 (on the VM, after init_1_create_cluster.sh): tests and builds l4_proto_inspector, then loads its image into kind.
 set -euo pipefail
 
-# Locates the crate relative to this script, not the cwd.
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-CRATE_DIR="$SCRIPT_DIR/../../l4_proto_inspector"
+# Inputs with defaults; the crate path is relative to the repo root.
+CRATE_DIR=l4_proto_inspector
 INSPECTOR_IMAGE=${INSPECTOR_IMAGE:-localhost/l4-proto-inspector:dev}
 
 # Targets the cluster from init_1_create_cluster.sh.

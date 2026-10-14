@@ -1,12 +1,11 @@
-# Deployment load in ns demo: one meshed fortio client holding ~2000 long-lived connections to echo.demo:5678.
-# 500 req/s total; -connection-reuse reopens each connection after 50-150 requests (~3-10 min).
+# Deployment load: one meshed fortio client holding many long-lived connections to the target URL.
+# -connection-reuse reopens each connection after 50-150 requests (~3-10 min at the script defaults).
 # -sequential-warmup opens connections one at a time so the proxy's 128-entry listen backlog does not overflow.
-# test_load_3_fortio.sh substitutes the -c and -qps values; init_9_deploy_echo.sh creates ns demo and echo.
+# test_load_3_fortio.sh fills the <..._PLACEHOLDER> values and applies it with -n NAMESPACE.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: load
-  namespace: demo
   labels:
     app: load
 spec:
@@ -25,9 +24,9 @@ spec:
           args:
             - load
             - -c
-            - "2000"
+            - "<CONNECTIONS_PLACEHOLDER>"
             - -qps
-            - "500"
+            - "<QPS_PLACEHOLDER>"
             - -t
             - "0"
             - -uniform
@@ -37,7 +36,7 @@ spec:
             - -allow-initial-errors
             - -loglevel
             - warning
-            - http://echo.demo:5678/
+            - "<TARGET_URL_PLACEHOLDER>"
           resources:
             requests:
               cpu: 100m

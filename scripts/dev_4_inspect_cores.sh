@@ -1,58 +1,48 @@
 #!/usr/bin/env bash
-# Usage: ./dev_4_inspect_cores.sh [NAMESPACE] [WORKLOAD]
-#   e.g. ./dev_4_inspect_cores.sh
-#        ./dev_4_inspect_cores.sh grafana deploy/grafana
-# Defaults to emojivoto deploy/web, matching
-# dev_3_modify_linkerd_cores.sh.
+# Shows the proxy's core settings and what the proxy did with them.
+# Run from the launchy-dev repo root. Pairs with dev_3: run before and after.
 #
-# Shows what the proxy's core settings are and what the proxy actually
-# did with them.
+# Usage:
+#   ./scripts/dev_4_inspect_cores.sh
+#   ./scripts/dev_4_inspect_cores.sh grafana deploy/grafana
 #
-# Pairs with dev_3_modify_linkerd_cores.sh: run this before and after
-# to see the change.
-#
-# The inspect_<n>_ prefix marks a read-only script. It changes nothing.
+# Args and defaults:
+#   $1 NAMESPACE: emojivoto
+#   $2 WORKLOAD: deploy/web
 set -euo pipefail
 
 NS="${1:-emojivoto}"
 WORKLOAD="${2:-deploy/web}"
 
 echo "=== 1. Configured: proxy-additional-env annotation on the pod template ==="
-# Read the annotation off the pod template.
-#
-# Only the pod template annotation has any effect; the Deployment's own
-# does nothing.
+# Only the pod template annotation has any effect; the Deployment's own does nothing.
 kubectl get "$WORKLOAD" -n "$NS" \
-  -o jsonpath='{.spec.template.metadata.annotations.config\.linkerd\.io/proxy-additional-env}' \
-  || true
+  -o jsonpath='{.spec.template.metadata.annotations.config\.linkerd\.io/proxy-additional-env}'
 echo
 
 echo "=== 2. Configured: CORES env actually set on the running proxy container ==="
-SELECTOR=$(kubectl get "$WORKLOAD" -n "$NS" \
-  -o go-template='{{range $k,$v := .spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}' | sed 's/,$//')
+# shellcheck disable=SC2016 # $k and $v are go-template vars, not shell.
+LABELS=$(kubectl get "$WORKLOAD" -n "$NS" \
+  -o go-template='{{range $k,$v := .spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}')
+SELECTOR=$(echo "$LABELS" | sed 's/,$//')
 # Take the newest pod, not .items[0].
-#
-# During a rollout the old pod is still Running and sorts first, which
-# makes this script report the setting just replaced.
+# During a rollout the old pod is still Running and sorts first, reporting the setting just replaced.
 POD=$(kubectl get pods -n "$NS" -l "$SELECTOR" \
   --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
-COUNT=$(kubectl get pods -n "$NS" -l "$SELECTOR" --no-headers | wc -l | tr -d ' ')
-[ "$COUNT" -gt 1 ] && echo "(note: $COUNT pods match; a rollout may be in progress. Reporting the newest.)"
 echo "pod: $POD"
-kubectl get pod "$POD" -n "$NS" -o go-template='{{range .spec.initContainers}}{{if eq .name "linkerd-proxy"}}{{range .env}}{{if or (eq .name "LINKERD2_PROXY_CORES_MAX") (eq .name "LINKERD2_PROXY_CORES") (eq .name "LINKERD2_PROXY_CORES_MIN")}}{{.name}}={{.value}}{{"\n"}}{{end}}{{end}}{{end}}{{end}}'
-kubectl get pod "$POD" -n "$NS" -o jsonpath='{range .spec.initContainers[?(@.name=="linkerd-proxy")]}cpu limit={.resources.limits.cpu} request={.resources.requests.cpu}{"\n"}{end}'
+PROXY_ENV=$(kubectl get pod "$POD" -n "$NS" \
+  -o jsonpath='{range .spec.initContainers[?(@.name=="linkerd-proxy")].env[*]}{.name}={.value}{"\n"}{end}')
+echo "$PROXY_ENV" | sed -n '/CORES/p'
+CPU=$(kubectl get pod "$POD" -n "$NS" \
+  -o jsonpath='{range .spec.initContainers[?(@.name=="linkerd-proxy")]}limit={.resources.limits.cpu} request={.resources.requests.cpu}{end}')
+echo "cpu $CPU"
 
 echo "=== 3. Decided: what the proxy chose at startup ==="
-# The proxy announces its own decision, from linkerd2_proxy::rt.
-#
-# This is intent, not observed OS threads.
-kubectl logs -n "$NS" "$POD" -c linkerd-proxy 2>/dev/null | grep -i 'proxy runtime' || echo "(no 'proxy runtime' line found)"
+# The proxy logs its decision from linkerd2_proxy::rt: intent, not observed OS threads.
+LOGS=$(kubectl logs -n "$NS" "$POD" -c linkerd-proxy)
+echo "$LOGS" | sed -n '/[Pp]roxy runtime/p'
 
 echo "=== 4. Observed: tokio_rt_workers, the real worker count ==="
-# tokio_rt_workers is the number; do not count threads named "proxy".
-#
-# Scoped to the one pod above, not the workload: proxy-metrics answers
-# for every pod behind a workload, so a rollout prints two numbers.
-linkerd diagnostics proxy-metrics -n "$NS" "po/$POD" 2>/dev/null \
-  | awk '/^tokio_rt_workers /{print "tokio_rt_workers =", $2}' \
-  || echo "(proxy-metrics unavailable; is the workload meshed?)"
+# Scoped to one pod: proxy-metrics on a workload answers for every pod behind it.
+METRICS=$(linkerd diagnostics proxy-metrics -n "$NS" "po/$POD")
+echo "$METRICS" | sed -n '/^tokio_rt_workers /p'

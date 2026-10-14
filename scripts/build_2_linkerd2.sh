@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Usage: ./build_2_linkerd2.sh
-#        LINKERD2_REF=<branch|sha|pull/<n>/head> ./build_2_linkerd2.sh
-#        LINKERD2_DIR=/path/to/linkerd2 BUILD_OUT_DIR=/path/to/out ./build_2_linkerd2.sh
+# Loads the shared build helpers.
+# shellcheck source=scripts/util_build.sh
+. scripts/util_build.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/build_2_linkerd2.sh
+#        LINKERD2_REF=<branch|sha|pull/<n>/head> ./scripts/build_2_linkerd2.sh
+#        LINKERD2_DIR=/path/to/linkerd2 BUILD_OUT_DIR=/path/to/out ./scripts/build_2_linkerd2.sh
 #
 # Env vars and defaults:
 #   LINKERD2_DIR     ../linkerd2 beside this launchy-dev checkout
@@ -13,13 +18,8 @@
 # The overlay is needed because `just linkerd-build` bakes in a released proxy binary.
 set -euo pipefail
 
-# Loads the shared build helpers.
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=util_build.sh
-. "$SCRIPT_DIR/util_build.sh"
-
 # Applies env defaults.
-LINKERD2_DIR=${LINKERD2_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)/linkerd2}
+LINKERD2_DIR=${LINKERD2_DIR:-$(cd .. && pwd)/linkerd2}
 LINKERD2_REF=${LINKERD2_REF:-pull/15676/head}
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-localhost/linkerd}
 

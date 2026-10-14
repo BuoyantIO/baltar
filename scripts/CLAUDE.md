@@ -37,7 +37,7 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 
 - `test_load_1_local_tunnel.sh`: load test through whatever publishes `localhost:8080`.
 - `test_load_2_docker_nodeport.sh`: load test at the NodePort from a Docker container, no tunnel.
-- `test_load_3_fortio.sh`: load test inside the mesh with a meshed fortio client against echo.
+- `test_load_3_fortio.sh`: meshed fortio client holding long-lived connections to `TARGET_URL`.
   - `test_load_3_fortio.yaml`: the fortio Deployment manifest.
 
 ### build: custom Linkerd builds
@@ -63,6 +63,7 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 
 - `util_build.sh`: helpers for build, verify and repro scripts.
 - `util_measure.sh`: helpers for the CPU sampler.
+- `util_kube.sh`: `k` (kubectl on `CONTEXT`).
 
 ### app: scripts for the apps we test
 
@@ -86,10 +87,15 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
   - We create a category only when none fits.
 - Each script does one step so others can compose it.
   - Examples in `scripts/examples/` call scripts and hold no logic of their own (see `examples/CLAUDE.md`).
-- Inputs are env vars with defaults, documented in the header.
-- Prerequisites are checked at the start and the script fails fast with the command to fix them.
+- Keeping bash simple is the main goal.
+- Scripts run from the repo root; paths are relative to it, with no `SCRIPT_DIR`.
+- Inputs are env vars, documented in the header.
+  - Inputs naming what the script talks to (target URL, namespace) are required, with no default.
+- We add no safety checks unless asked; the failing command reports the error.
+- Manifests carry `<NAME_PLACEHOLDER>` tokens that the script replaces with `${text//<NAME_PLACEHOLDER>/$value}`.
 - The header holds a `# Usage:` line and the env vars with their defaults.
 - Shared helpers go in `util_` files, are sourced and never run.
+  - We source them directly below the shebang, with no guard.
   - The caller owns `set -euo pipefail`.
 - We write and edit `.sh` files only through the `coder-shell-script` agent.
 - Manifests sit beside the script that applies them and share its name prefix.

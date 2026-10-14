@@ -15,13 +15,12 @@ REAL_ID=billing.billing.serviceaccount.identity.linkerd.cluster.local
 FORGED_ID=reporting.billing.serviceaccount.identity.linkerd.cluster.local
 FORGED_USER=reporting_app
 
-# Helpers: kubectl on CONTEXT, a bold step banner, and exit with a message.
+# Helpers: kubectl on CONTEXT, and exit with a message.
 k() { kubectl --context "$CONTEXT" "$@"; }
-step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { echo "$*" >&2; exit 1; }
 
 # Fails fast, naming the missing prerequisite, so it does not read like a check failure.
-step "prerequisites"
+echo "[-] prerequisites"
 k cluster-info >/dev/null 2>&1 \
   || die "context $CONTEXT unreachable: run ../init_1_create_cluster.sh"
 for ns in db billing; do
@@ -65,7 +64,7 @@ forged_payload() {
 # Sends the forged payload over /dev/tcp (postgres:17 has no nc) and prints the reply as hex.
 # The timeout only bounds the failure case: pgppi closes the connection on a malformed startup.
 check_forged() {
-  step "forged: $REAL_ID claims $FORGED_ID on pg-pgppi.db:15432"
+  echo "[-] forged: $REAL_ID claims $FORGED_ID on pg-pgppi.db:15432"
   local since reply logs
   since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   # $1 expands in the pod's bash, not here.
@@ -107,7 +106,7 @@ check_forged() {
 # Logs in to pg-rw.db:5432 as app; a PROXY header there would fail the login.
 # The password goes over stdin to stay out of process argument lists.
 check_unannotated() {
-  step "unannotated: $CLIENT to pg-rw.db:5432 as app"
+  echo "[-] unannotated: $CLIENT to pg-rw.db:5432 as app"
   local password out
   password=$(k -n db get secret "$APP_SECRET" -o jsonpath='{.data.password}' | base64 -d)
   if ! out=$(k -n billing exec -i "$CLIENT" -c "$CLIENT_CONTAINER" -- bash -c '
@@ -128,7 +127,7 @@ check_forged || forged=FAIL
 check_unannotated || unannotated=FAIL
 
 # Prints both verdicts and exits non-zero unless both passed.
-step "summary"
+echo "[-] summary"
 echo "forged:      $forged"
 echo "unannotated: $unannotated"
 [ "$forged" = PASS ] && [ "$unannotated" = PASS ]

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# Usage: ./build_5_verify_linkerd2.sh
-#        BUILD_OUT_DIR=/path/to/out ./build_5_verify_linkerd2.sh
+# Loads read_env and BUILD_OUT_DIR.
+# shellcheck source=scripts/util_build.sh
+. scripts/util_build.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/build_5_verify_linkerd2.sh
+#        BUILD_OUT_DIR=/path/to/out ./scripts/build_5_verify_linkerd2.sh
 #
 # Env vars and defaults:
 #   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
@@ -20,10 +25,6 @@
 # `docker cp` and hashed on the host: the proxy image is minimal, so
 # `sha256sum` may be absent inside it.
 set -euo pipefail
-
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=util_build.sh
-. "$SCRIPT_DIR/util_build.sh"
 
 BIN_PATH=/usr/lib/linkerd/linkerd2-proxy
 ANNOTATION=config.linkerd.io/proxy-protocol-v2-inbound-ports

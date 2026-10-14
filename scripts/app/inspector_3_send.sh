@@ -16,13 +16,12 @@ MARKER=${MARKER:-pp-$(date +%s)-$RANDOM}
 CONTEXT=kind-kind
 NS=inspect
 
-# Helpers: kubectl on CONTEXT, a bold step banner, and exit with a message.
+# Helpers: kubectl on CONTEXT, and exit with a message.
 k() { kubectl --context "$CONTEXT" "$@"; }
-step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { echo "$*" >&2; exit 1; }
 
 # Fails fast, naming the missing prerequisite, so it does not read like a check failure.
-step "prerequisites"
+echo "[-] prerequisites"
 command -v kubectl >/dev/null || die "kubectl not found: install it"
 k cluster-info >/dev/null 2>&1 || die "context $CONTEXT unreachable: run ../init_1_create_cluster.sh"
 k get namespace "$NS" >/dev/null 2>&1 || die "namespace $NS missing: run inspector_2_deploy.sh"
@@ -32,7 +31,7 @@ for d in inspector client; do
 done
 
 # Sends the marker and checks the echo; any leftover header bytes would come back in the reply.
-step "send $MARKER to inspector.$NS:15432"
+echo "[-] send $MARKER to inspector.$NS:15432"
 reply=$(k -n "$NS" exec deploy/client -c client -- \
   sh -c "echo '$MARKER' | nc -w2 inspector.$NS 15432") \
   || die "FAIL: nc from deploy/client to inspector.$NS:15432 failed"

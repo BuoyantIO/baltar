@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Usage: ./dev_9_proxy_memory.sh
-#        MEM_NAMESPACE=emojivoto MEM_SELECTOR=app=web-svc ./dev_9_proxy_memory.sh
-#        CONTEXT=kind-launchy ./dev_9_proxy_memory.sh
+# Loads k (kubectl on CONTEXT).
+# shellcheck source=scripts/util_kube.sh
+. scripts/util_kube.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/dev_9_proxy_memory.sh
+#        MEM_NAMESPACE=emojivoto MEM_SELECTOR=app=web-svc ./scripts/dev_9_proxy_memory.sh
+#        CONTEXT=kind-launchy ./scripts/dev_9_proxy_memory.sh
 #
 # Prints, for every pod matching MEM_SELECTOR, the MEM_CONTAINER process's Rss and AnonHugePages
 # from /proc/<pid>/smaps_rollup on its kind node, with the node's transparent_hugepage setting and
@@ -26,8 +31,7 @@ MEM_NAMESPACE=${MEM_NAMESPACE:-demo}
 MEM_SELECTOR=${MEM_SELECTOR:-app=echo}
 MEM_CONTAINER=${MEM_CONTAINER:-linkerd-proxy}
 
-# Helpers: kubectl on CONTEXT, and exit with a message.
-k() { kubectl --context "$CONTEXT" "$@"; }
+# Defines die: exits with a message.
 die() { echo "$*" >&2; exit 1; }
 
 # Fails fast on missing tools or a non-kind context.

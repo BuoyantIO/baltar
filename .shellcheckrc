@@ -1,0 +1,2 @@
+# SC2001: we prefer `echo | sed` over ${var//...} when it reads clearer.
+disable=SC2001

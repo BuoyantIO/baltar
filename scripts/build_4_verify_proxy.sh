@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# Usage: ./build_4_verify_proxy.sh
-#        BUILD_OUT_DIR=/path/to/out ./build_4_verify_proxy.sh
+# Loads read_env and BUILD_OUT_DIR.
+# shellcheck source=scripts/util_build.sh
+. scripts/util_build.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/build_4_verify_proxy.sh
+#        BUILD_OUT_DIR=/path/to/out ./scripts/build_4_verify_proxy.sh
 #
 # Env vars and defaults:
 #   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
@@ -14,10 +19,6 @@
 # `docker cp` and searched on the host: the proxy image is minimal, so
 # `strings` or `grep` may be absent inside it.
 set -euo pipefail
-
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=util_build.sh
-. "$SCRIPT_DIR/util_build.sh"
 
 BIN_PATH=/usr/lib/linkerd/linkerd2-proxy
 FEATURE_STRING=LINKERD2_PROXY_INBOUND_PORTS_PROXY_PROTOCOL_V2

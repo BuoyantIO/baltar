@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Usage: ./build_1_proxy.sh
-#        LINKERD2_PROXY_REF=<branch|sha|pull/<n>/head> ./build_1_proxy.sh
-#        LINKERD2_PROXY_DIR=/path/to/linkerd2-proxy BUILD_OUT_DIR=/path/to/out ./build_1_proxy.sh
+# Loads the shared build helpers.
+# shellcheck source=scripts/util_build.sh
+. scripts/util_build.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/build_1_proxy.sh
+#        LINKERD2_PROXY_REF=<branch|sha|pull/<n>/head> ./scripts/build_1_proxy.sh
+#        LINKERD2_PROXY_DIR=/path/to/linkerd2-proxy BUILD_OUT_DIR=/path/to/out ./scripts/build_1_proxy.sh
 #
 # Env vars and defaults:
 #   LINKERD2_PROXY_DIR  ../linkerd2-proxy beside this launchy-dev checkout
@@ -13,13 +18,8 @@
 # The SHA tag replaces the justfile default, which embeds the branch name and so reads "HEAD" when detached.
 set -euo pipefail
 
-# Loads the shared build helpers.
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=util_build.sh
-. "$SCRIPT_DIR/util_build.sh"
-
 # Applies env defaults.
-LINKERD2_PROXY_DIR=${LINKERD2_PROXY_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)/linkerd2-proxy}
+LINKERD2_PROXY_DIR=${LINKERD2_PROXY_DIR:-$(cd .. && pwd)/linkerd2-proxy}
 LINKERD2_PROXY_REF=${LINKERD2_PROXY_REF:-pull/4625/head}
 LINKERD_TAG=${LINKERD_TAG:-edge-25.11.3}
 

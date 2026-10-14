@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# Usage: ./repro_2_e2e.sh
-#        ./repro_2_e2e.sh TestAllowed
-#        ./repro_2_e2e.sh TestAllowed TestDenied
-#        PGPPI_DIR=~/src/pg-ppi GO_IMAGE=golang:1.26 ./repro_2_e2e.sh
+# Loads BUILD_OUT_DIR.
+# shellcheck source=scripts/util_build.sh
+. scripts/util_build.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/app/repro_2_e2e.sh
+#        ./scripts/app/repro_2_e2e.sh TestAllowed
+#        ./scripts/app/repro_2_e2e.sh TestAllowed TestDenied
+#        PGPPI_DIR=~/src/pg-ppi GO_IMAGE=golang:1.26 ./scripts/app/repro_2_e2e.sh
 #
 # Env vars and defaults:
 #   PGPPI_DIR      pg-ppi checkout next to launchy-dev
@@ -14,13 +19,8 @@
 # Runs in a container for pg-ppi's Go 1.26 toolchain, with host networking for kind's 127.0.0.1 API server.
 set -euo pipefail
 
-# Loads BUILD_OUT_DIR.
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=../util_build.sh
-. "$SCRIPT_DIR/../util_build.sh"
-
 # Inputs with defaults; the context is fixed to the cluster from init_1_create_cluster.sh.
-PGPPI_DIR=${PGPPI_DIR:-$(cd "$SCRIPT_DIR/../../.." && pwd)/pg-ppi}
+PGPPI_DIR=${PGPPI_DIR:-$(cd .. && pwd)/pg-ppi}
 GO_IMAGE=${GO_IMAGE:-golang:1.26}
 KUBECTL=${KUBECTL:-$(command -v kubectl || true)}
 KUBE_CONTEXT=kind-kind

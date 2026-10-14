@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Usage: ./run.sh
-#        BEL_VERSION=2.19.12 ./run.sh
-#        CONNECTIONS=500 QPS=100 ./run.sh
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/examples/bel/run.sh
+#        BEL_VERSION=2.19.12 ./scripts/examples/bel/run.sh
+#        CONNECTIONS=500 QPS=100 ./scripts/examples/bel/run.sh
 #
 # Example: kind cluster with Buoyant Enterprise for Linkerd, the meshed echo server in ns demo
 # and a meshed fortio client holding long-lived connections to it under steady load.
@@ -14,16 +15,13 @@
 #   QPS           500 (test_load_3_fortio.sh)
 set -euo pipefail
 
-# Resolves the scripts directory from this file's location.
-SCRIPTS_DIR=$(cd "$(dirname "$0")/../.." && pwd)
-
 # Creates the cluster: init_2_install_bel.sh runs after init_1_create_cluster.sh.
-"$SCRIPTS_DIR/init_1_create_cluster.sh"
+scripts/init_1_create_cluster.sh
 
 # Installs BEL, deploys echo, then starts the fortio load.
-"$SCRIPTS_DIR/init_2_install_bel.sh"
-"$SCRIPTS_DIR/init_9_deploy_echo.sh"
-"$SCRIPTS_DIR/test_load_3_fortio.sh"
+scripts/init_2_install_bel.sh
+scripts/init_9_deploy_echo.sh
+scripts/test_load_3_fortio.sh
 
 # Names the teardown.
-echo "cleanup: $SCRIPTS_DIR/cleanup_1_cluster.sh"
+echo "cleanup: scripts/cleanup_1_cluster.sh"

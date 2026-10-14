@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Usage: ./repro_1_deploy_pgppi.sh
-#        PGPPI_DIR=~/src/pg-ppi ./repro_1_deploy_pgppi.sh
-#        PGPPI_IMAGE=ghcr.io/daniel-garcia/pg-ppi:dev ./repro_1_deploy_pgppi.sh
-#        CERT_MANAGER_VERSION=v1.21.2 CNPG_VERSION=1.30.1 ./repro_1_deploy_pgppi.sh
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/app/repro_1_deploy_pgppi.sh
+#        PGPPI_DIR=~/src/pg-ppi ./scripts/app/repro_1_deploy_pgppi.sh
+#        PGPPI_IMAGE=ghcr.io/daniel-garcia/pg-ppi:dev ./scripts/app/repro_1_deploy_pgppi.sh
+#        CERT_MANAGER_VERSION=v1.21.2 CNPG_VERSION=1.30.1 ./scripts/app/repro_1_deploy_pgppi.sh
 #
 # Repro step 1: deploys pgppi, cert-manager, CloudNativePG and Cluster db/pg onto kind-kind.
 # Mirrors pg-ppi's hack/e2e-setup.sh minus its kind and Linkerd steps; safe to rerun.
@@ -60,7 +61,7 @@
 set -euo pipefail
 
 # Inputs with defaults; PGPPI_DIR is a pg-ppi checkout next to launchy-dev.
-PGPPI_DIR=${PGPPI_DIR:-$(cd "$(dirname "$0")/../../.." && pwd)/pg-ppi}
+PGPPI_DIR=${PGPPI_DIR:-../pg-ppi}
 PGPPI_IMAGE=${PGPPI_IMAGE:-ghcr.io/daniel-garcia/pg-ppi:dev}
 CERT_MANAGER_VERSION=${CERT_MANAGER_VERSION:-v1.21.2}
 CNPG_VERSION=${CNPG_VERSION:-1.30.1}
@@ -76,30 +77,29 @@ fi
 CONTEXT=kind-kind
 KIND_CLUSTER=kind
 
-# Helpers: kubectl on CONTEXT, and a bold step banner.
+# Helpers: kubectl on CONTEXT.
 k() { kubectl --context "$CONTEXT" "$@"; }
-step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 
 # Builds the pgppi image into kind; the manifests use pg-ppi:dev with IfNotPresent.
 # A PGPPI_IMAGE override is loaded but not referenced, as in pg-ppi's own script.
-step "pgppi image $PGPPI_IMAGE"
+echo "[-] pgppi image $PGPPI_IMAGE"
 docker build -t "$PGPPI_IMAGE" "$PGPPI_DIR"
 kind load docker-image --name "$KIND_CLUSTER" "$PGPPI_IMAGE"
 
 # Installs cert-manager, which issues the plugin's gRPC TLS certificates.
-step "cert-manager $CERT_MANAGER_VERSION"
+echo "[-] cert-manager $CERT_MANAGER_VERSION"
 k apply -f "https://github.com/cert-manager/cert-manager/releases/download/$CERT_MANAGER_VERSION/cert-manager.yaml"
 k -n cert-manager rollout status deploy --timeout=180s
 
 # Installs CloudNativePG; server-side because its CRDs exceed the client-side annotation limit.
-step "CloudNativePG $CNPG_VERSION"
+echo "[-] CloudNativePG $CNPG_VERSION"
 k apply --server-side -f \
   "https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-${CNPG_VERSION%.*}/releases/cnpg-$CNPG_VERSION.yaml"
 k -n cnpg-system rollout status deploy/cnpg-controller-manager --timeout=180s
 
 # Deploys the pgppi plugin, restarted once its certificates are Ready.
 # The first pod may start before cert-manager has created its secrets.
-step "pgppi CNPG-I plugin"
+echo "[-] pgppi CNPG-I plugin"
 k apply -k "$PGPPI_DIR/deploy/plugin"
 k -n cnpg-system wait certificate --all --for=condition=Ready --timeout=120s
 k -n cnpg-system rollout restart deploy/pgppi
@@ -107,12 +107,12 @@ k -n cnpg-system rollout status deploy/pgppi --timeout=120s
 
 # Deploys Cluster db/pg and the billing clients.
 # Cluster Ready proves the plugin injected the instance pod's sidecars.
-step "example Cluster and clients"
+echo "[-] example Cluster and clients"
 k apply -f "$PGPPI_DIR/examples/cluster.yaml"
 k apply -f "$PGPPI_DIR/examples/clients.yaml"
 k -n db wait cluster/pg --for=condition=Ready --timeout=600s
 k -n billing rollout status deploy --timeout=300s
 
 # Lists the db pods to show where the instance runs.
-step "ready"
+echo "[-] ready"
 k -n db get pods -o wide

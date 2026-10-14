@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Usage: ./run.sh
-#        CONNECTIONS=250 DURATION=60s ./run.sh
-#        LOAD_SCRIPT=test_load_1_local_tunnel.sh RUN_NAME=tunnel-web ./run.sh
+# Reuses the sampler's state helpers to detect when the collector is live.
+# shellcheck source=scripts/util_measure.sh
+. scripts/util_measure.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/examples/load_test/run.sh
+#        CONNECTIONS=250 DURATION=60s ./scripts/examples/load_test/run.sh
+#        LOAD_SCRIPT=test_load_1_local_tunnel.sh RUN_NAME=tunnel-web ./scripts/examples/load_test/run.sh
 #
 # Samples CPU of one workload around a load run: dev_5_measure_start.sh in the background,
 # one test_load_* script, then dev_6_measure_stop.sh, which prints the CSV path.
@@ -17,7 +22,6 @@
 #   START_TIMEOUT=30                            seconds to wait for the sampler to start
 set -euo pipefail
 
-SCRIPTS="$(cd "$(dirname "$0")/../.." && pwd)"
 LOAD_SCRIPT=${LOAD_SCRIPT:-test_load_2_docker_nodeport.sh}
 CONNECTIONS=${CONNECTIONS:-125}
 DURATION=${DURATION:-30s}
@@ -27,17 +31,13 @@ WORKLOAD=${WORKLOAD:-deploy/web}
 START_TIMEOUT=${START_TIMEOUT:-30}
 
 # Fail fast on missing scripts.
-for f in dev_5_measure_start.sh dev_6_measure_stop.sh "$LOAD_SCRIPT" util_measure.sh; do
-  [ -f "$SCRIPTS/$f" ] || { echo "missing $SCRIPTS/$f; set LOAD_SCRIPT to an existing test_load_* script" >&2; exit 1; }
+for f in dev_5_measure_start.sh dev_6_measure_stop.sh "$LOAD_SCRIPT"; do
+  [ -f "scripts/$f" ] || { echo "missing scripts/$f; set LOAD_SCRIPT to an existing test_load_* script" >&2; exit 1; }
 done
 case "$LOAD_SCRIPT" in
   test_load_1_*) load_args=() ;;
   *) load_args=("$CONNECTIONS" "$DURATION") ;;
 esac
-
-# Reuse the sampler's state helpers to detect when the collector is live.
-# shellcheck source=../../util_measure.sh
-. "$SCRIPTS/util_measure.sh"
 
 # Stop the sampler on any exit, so a failed load still yields a CSV.
 SAMPLER_PID=""
@@ -45,17 +45,17 @@ SAMPLER_STARTED=""
 stop_sampler() {
   local rc=$?
   if [ -n "${SAMPLER_STARTED:-}" ]; then
-    "$SCRIPTS/dev_6_measure_stop.sh" || rc=$?
+    scripts/dev_6_measure_stop.sh || rc=$?
   elif [ -n "${SAMPLER_PID:-}" ]; then
     kill "$SAMPLER_PID" 2>/dev/null || true
   fi
-  echo "cleanup: $SCRIPTS/cleanup_1_cluster.sh" >&2
+  echo "cleanup: ./scripts/cleanup_1_cluster.sh" >&2
   exit "$rc"
 }
 trap stop_sampler EXIT
 
 # Start the sampler and wait until it owns the state file.
-"$SCRIPTS/dev_5_measure_start.sh" "$RUN_NAME" "$NAMESPACE" "$WORKLOAD" &
+scripts/dev_5_measure_start.sh "$RUN_NAME" "$NAMESPACE" "$WORKLOAD" &
 SAMPLER_PID=$!
 waited=0
 until [ "$(collector_pid 2>/dev/null || true)" = "$SAMPLER_PID" ]; do
@@ -67,4 +67,4 @@ done
 SAMPLER_STARTED=1
 
 # Drive the load; the EXIT trap stops the sampler and prints the CSV path.
-"$SCRIPTS/$LOAD_SCRIPT" ${load_args[@]+"${load_args[@]}"}
+"scripts/$LOAD_SCRIPT" ${load_args[@]+"${load_args[@]}"}

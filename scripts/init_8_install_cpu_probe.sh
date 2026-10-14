@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Usage: ./init_8_install_cpu_probe.sh
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/init_8_install_cpu_probe.sh
 #
 # Setup step 8. Installs the cpu-probe DaemonSet, which mounts each
 # node's /sys/fs/cgroup read-only so `kubectl exec` can read container
@@ -15,10 +16,8 @@
 # sampler reads through it.
 set -euo pipefail
 
-cd "$(dirname "$0")"
-
 echo "=== Installing cpu-probe DaemonSet ==="
-kubectl apply -f init_8_cpu_probe.yaml
+kubectl apply -f scripts/init_8_cpu_probe.yaml
 
 kubectl rollout status daemonset/cpu-probe -n kube-system --timeout=120s
 

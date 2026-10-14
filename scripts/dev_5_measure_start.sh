@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Usage: ./dev_5_measure_start.sh <run-name> <namespace> <workload>
+# Loads the sampler state helpers.
+# shellcheck source=scripts/util_measure.sh
+. scripts/util_measure.sh
+
+# Run from the launchy-dev repo root.
+# Usage: ./scripts/dev_5_measure_start.sh <run-name> <namespace> <workload>
 #
 #   <run-name>   titles the run and names its CSV, <run-name>.csv
 #   <namespace>  the namespace the workload lives in
@@ -8,14 +13,14 @@
 #                can be pointed at a thing by copy-paste)
 #
 # Samples every container of that workload's pods once a second and
-# blocks until ./dev_6_measure_stop.sh ends the run and writes the CSV.
+# blocks until ./scripts/dev_6_measure_stop.sh ends the run and writes the CSV.
 #
 # Three terminals, because the sampler never generates load: driving the
 # load is somebody else's terminal, and so is meshing or unmeshing.
 #
-#   term 1:  ./dev_5_measure_start.sh unmeshed-web emojivoto deploy/web
-#   term 2:  ./test_load_2_docker_nodeport.sh 125 30s
-#   term 3:  ./dev_6_measure_stop.sh
+#   term 1:  ./scripts/dev_5_measure_start.sh unmeshed-web emojivoto deploy/web
+#   term 2:  ./scripts/test_load_2_docker_nodeport.sh 125 30s
+#   term 3:  ./scripts/dev_6_measure_stop.sh
 #
 # A run name cannot be reused: if <run-name>.csv already exists this
 # exits before taking a single sample.
@@ -47,11 +52,7 @@
 # container ids changed.
 set -euo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=util_measure.sh
-. "$HERE/util_measure.sh"
-
-STOP_SCRIPT="$HERE/dev_6_measure_stop.sh"
+STOP_SCRIPT=./scripts/dev_6_measure_stop.sh
 ERRLOG="$DIR/collector.err"
 # How often the workload's pods are re-resolved.
 #
@@ -62,7 +63,7 @@ ERRLOG="$DIR/collector.err"
 # the thing being measured.
 RESOLVE_INTERVAL="${RESOLVE_INTERVAL:-5}"
 
-usage() { sed -n '2,17p' "$0" >&2; exit 1; }
+usage() { sed -n '6,22p' "$0" >&2; exit 1; }
 
 # Keep the run name to characters that cannot break a filename or a CSV
 # column.
