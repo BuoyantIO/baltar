@@ -47,6 +47,7 @@ place by changing what a reader would do.
 # Layers
 
 Read the folder's `CLAUDE.md` before working there.
+Keep context local: a rule or fact goes in the `CLAUDE.md` closest to what it governs, not a higher-level one.
 
 - `scripts/`: numbered shell steps by category (init, dev, test, build, pf, cleanup, util). Read `scripts/CLAUDE.md`.
 - `scripts/app/`: inspector and repro scripts. Covered by `scripts/CLAUDE.md`.

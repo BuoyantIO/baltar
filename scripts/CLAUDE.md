@@ -33,12 +33,13 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 - `dev_8_wireshark_capture.sh`: captures a workload's traffic for Wireshark or a pcap file.
 - `dev_9_proxy_memory.sh`: prints proxy Rss and AnonHugePages per pod from its kind node.
 
-### test: load tests
+### test: load and policy tests
 
 - `test_load_1_local_tunnel.sh`: load test through whatever publishes `localhost:8080`.
 - `test_load_2_docker_nodeport.sh`: load test at the NodePort from a Docker container, no tunnel.
 - `test_load_3_fortio.sh`: meshed fortio client holding long-lived connections to `TARGET_URL`.
   - `test_load_3_fortio.yaml`: the fortio Deployment manifest.
+- `test_policy_1_run.sh`: runs a linkerd2 policy test binary once with trace logs, via `just policy-test-run`.
 
 ### build: custom Linkerd builds
 
@@ -100,3 +101,10 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 - We write and edit `.sh` files only through the `coder-shell-script` agent.
 - Manifests sit beside the script that applies them and share its name prefix.
 - We add every new script to the catalog above in the same change.
+
+## Adding a script
+
+- Before adding a script, check whether existing scripts or linkerd2 `just` recipes already compose to do it; add only the missing piece.
+  - Example: `init_2_install_linkerd.sh` installs the CLI's version; for another build, use `build_2`/`build_3`, not a new install script.
+- A new script does one generic step (e.g. run a test once), not logic specific to one investigation.
+- Loops, repeated runs and investigation-specific glue live in a throwaway script outside this repo.
