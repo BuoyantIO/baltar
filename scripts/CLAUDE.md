@@ -21,6 +21,13 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 - `init_9_deploy_echo.sh`: deploys the meshed echo server in ns `demo`.
   - `init_9_echo.yaml`: the namespace and echo manifests.
 
+### mc: multicluster setup and hijack repro
+
+- `mc_0_trust_anchor.sh`: checks tools and mints the root+issuer anchor the two clusters share.
+- `mc_1_multicluster.sh`: multicluster install on both, MetalLB on the local cluster, and the west-into-local Link.
+  - `mc_1_metallb_pool.yaml`: the local gateway address pool (172.18.255.200-250).
+- Clusters come from `init_1_create_cluster.sh` with `CLUSTER_NAME`, meshed by `init_2_install_linkerd.sh` with `CONTEXT` and the anchor env.
+
 ### dev: mesh, tune, measure and inspect
 
 - `dev_1_mesh_emojivoto.sh`: meshes or unmeshes emojivoto.
@@ -59,6 +66,7 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 ### cleanup
 
 - `cleanup_1_cluster.sh`: deletes the kind cluster, which removes everything the init steps installed.
+  - Takes `CLUSTER_NAME`; run it once per cluster (bare for the default `kind`, then `west`) to tear down the multicluster pair.
 
 ### util: shared helpers
 
@@ -81,6 +89,7 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 ### examples
 
 - `examples/`: runnable compositions of the scripts above; see `examples/CLAUDE.md`.
+  - `examples/multicluster/`: reference run of the two-cluster mirror setup and the discovery-annotation redirect demo.
 
 ## Conventions
 

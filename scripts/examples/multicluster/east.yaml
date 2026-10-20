@@ -1,0 +1,91 @@
+# Local (default kind) cluster workloads for the multicluster example.
+#
+# The local cluster is the mirroring side. It holds a local "victim"
+# service and a meshed client. The client later resolves the mirrored west
+# services and we watch where the resolution actually lands.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant
+  annotations:
+    linkerd.io/inject: enabled
+---
+# Distinct identity for the victim, so mTLS shows victim-sa.tenant, not default.tenant.
+#
+# A default service account would emit the same identity as every other
+# default pod, hiding which backend answered; a named account makes the
+# landing endpoint unambiguous in the proxy metrics.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: victim-sa
+  namespace: tenant
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: victim-html
+  namespace: tenant
+data:
+  index.html: "I-AM-VICTIM-EAST\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: victim
+  namespace: tenant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: victim
+  template:
+    metadata:
+      labels:
+        app: victim
+    spec:
+      serviceAccountName: victim-sa
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: html
+          configMap:
+            name: victim-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: victim
+  namespace: tenant
+spec:
+  selector:
+    app: victim
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  namespace: tenant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl
+          command: ["sleep", "infinity"]

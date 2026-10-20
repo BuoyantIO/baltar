@@ -1,0 +1,9 @@
+# kind config for the multicluster example.
+#
+# It publishes no host port on purpose: east and west run side by side on
+# one host, so a shared hostPort would collide on the second cluster. The
+# example drives traffic from inside the mesh, so no NodePort is needed.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane

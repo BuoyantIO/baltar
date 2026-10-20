@@ -12,6 +12,8 @@ We keep each example as a thin composition of existing scripts, so it shows a wo
   - Runs `init_2_install_bel.sh`, `init_9_deploy_echo.sh`, `test_load_3_fortio.sh`.
 - `load_test`: measures resource use around a load run.
   - Runs `dev_5_measure_start.sh`, one `test_load_*` script, `dev_6_measure_stop.sh`.
+- `multicluster`: two-cluster mirror setup and the discovery-annotation redirect demo.
+  - Runs `mc_0_trust_anchor.sh`, `init_1` (east and west), `init_2` (both), `mc_1_multicluster.sh`, then applies its own manifests and `diagnose.sh`.
 
 ## Rules
 

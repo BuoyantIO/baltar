@@ -3,6 +3,7 @@
 # Usage: ./scripts/init_1_create_cluster.sh
 #        GATEWAY_API_VERSION=v1.5.1 ./scripts/init_1_create_cluster.sh
 #        KIND_LISTEN_ADDRESS=0.0.0.0 ./scripts/init_1_create_cluster.sh
+#        CLUSTER_NAME=east ./scripts/init_1_create_cluster.sh
 #
 # Setup step 1. Creates the kind cluster and installs the Gateway API
 # CRDs.
@@ -10,11 +11,17 @@
 # The init_<n>_ prefix marks a cluster-setup script and the order it
 # runs in, separating these from the load-test scripts alongside.
 #
-# Still unparameterised on the cluster shape: kind's defaults decide the
-# name, node count and k8s version, so there is one shape and no flags
-# living in shell history. The one thing the defaults cannot give is a
-# published NodePort, so the config file exists for that alone.
+# The one shape kind's defaults cannot give is a published NodePort, so
+# the config file exists for that alone. CLUSTER_NAME defaults to kind's
+# own default, so the single-cluster flow is unchanged; the multicluster
+# flow sets it to build east and west from the same script.
 set -euo pipefail
+
+# Names the cluster so the same script can build more than one.
+#
+# kind's own default is "kind"; keeping that default means every existing
+# caller behaves exactly as before.
+CLUSTER_NAME=${CLUSTER_NAME:-kind}
 
 KIND_CONFIG=${KIND_CONFIG:-scripts/init_1_create_cluster.yaml}
 [ -f "$KIND_CONFIG" ] || { echo "kind config not found: $KIND_CONFIG" >&2; exit 1; }
@@ -39,13 +46,13 @@ fi
 #
 # The alternative is pretending the rebuild succeeded against a cluster
 # we did not just build.
-kind create cluster --config "$KIND_CONFIG"
+kind create cluster --name "$CLUSTER_NAME" --config "$KIND_CONFIG"
 
 # Proves the API server answers and the context is the one we expect.
 #
 # A caller running the modules in order then starts from a known
-# cluster.
-kubectl cluster-info --context kind-kind
+# cluster. kind prefixes the context with "kind-".
+kubectl cluster-info --context "kind-$CLUSTER_NAME"
 
 # Installs the Gateway API CRDs.
 #
