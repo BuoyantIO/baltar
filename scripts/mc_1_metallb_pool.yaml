@@ -1,0 +1,22 @@
+# MetalLB address pool for the east gateway.
+#
+# The kind clusters share the 172.18.0.0/16 Docker network, so this pool
+# hands the east Linkerd gateway a stable address on that network
+# (172.18.255.200, the first in the range) that the Link then targets.
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: kind-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - "172.18.255.200-172.18.255.250"
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: kind-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - kind-pool

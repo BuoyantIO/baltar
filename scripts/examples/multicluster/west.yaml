@@ -1,0 +1,71 @@
+# West cluster workloads for the multicluster example.
+#
+# West is the exported side. Its "other" service carries the exported
+# label, so the local cluster mirrors it as other-west.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant
+  annotations:
+    linkerd.io/inject: enabled
+---
+# Distinct identity for other, so mTLS shows other-sa.tenant, not default.tenant.
+#
+# As on east, a named account makes the backend that actually answers
+# legible in the proxy metrics instead of an anonymous default identity.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: other-sa
+  namespace: tenant
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: other-html
+  namespace: tenant
+data:
+  index.html: "I-AM-WEST-OTHER\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: other
+  namespace: tenant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: other
+  template:
+    metadata:
+      labels:
+        app: other
+    spec:
+      serviceAccountName: other-sa
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: html
+          configMap:
+            name: other-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: other
+  namespace: tenant
+  labels:
+    mirror.linkerd.io/exported: "true"
+spec:
+  selector:
+    app: other
+  ports:
+    - port: 80
+      targetPort: 80
