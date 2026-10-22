@@ -76,11 +76,12 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 
 ### app: scripts for the apps we test
 
-- `app/inspector_1_build_image.sh`: builds the `l4_proto_inspector` image.
-- `app/inspector_2_deploy.sh`: deploys the inspector into ns `inspect`.
+- We run the `inspector_` scripts in order, on the VM with the kind cluster up.
+- `app/inspector_1_build_image.sh`: runs the tests, builds the release binary and loads the `l4_proto_inspector` image into kind.
+- `app/inspector_2_deploy.sh`: deploys the inspector, echo and client into ns `inspect`.
   - `app/inspector_2_deploy.yaml`: the inspector manifests.
-- `app/inspector_3_send.sh`: sends a marker through the inspector and checks the echo.
-- `app/inspector_4_verify.sh`: checks the inspector log shows the PROXY v2 header with the client identity.
+- `app/inspector_3_send.sh`: sends a marker through port 15432 and checks the echo, which proves the header was stripped.
+- `app/inspector_4_verify.sh`: checks the inspector log shows the PROXY v2 header with the TLV 0xE0 client identity.
 - `app/inspector_5_cleanup.sh`: deletes ns `inspect`.
 - `app/repro_1_deploy_pgppi.sh`: deploys pgppi, cert-manager, CloudNativePG and a Postgres cluster.
 - `app/repro_2_e2e.sh`: runs the pg-ppi e2e tests.

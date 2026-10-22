@@ -1,7 +1,18 @@
 # launchy-dev
 
 We stand up a Linkerd test cluster and measure it: CPU per container, latency per hop, meshed vs. unmeshed, under load. The cluster is a local `kind` cluster by default.
-The same scripts also run against an Azure VM for load driven over a public IP.
+
+## Prerequisites
+
+- Docker, `kind`, `kubectl`, `helm`, the `linkerd` CLI, `curl` and the Go (mikefarah) `yq`.
+  - `scripts/init_0_prerequisites.sh` checks these and lists the optional tools (`step`, `bombardier`, `jq`).
+- BEL
+  - a `.no_commit_bel` file in the repo root with a line `BUOYANT_LICENSE=<license>`: `cp .no_commit_bel_example .no_commit_bel`, then fill in the license.
+- Both macOS or Linux are supported for majority of operations.
+- Linux
+  - Compiling the Linkerd proxy source, because it uses Linux-only networking code.
+  - Checking a custom Linkerd build, because the CLI it produces runs only on Linux.
+  - Building the protocol inspector, because its image expects a binary built on Linux.
 
 ## Quick start
 
@@ -15,5 +26,6 @@ The same scripts also run against an Azure VM for load driven over a public IP.
 
 - Script catalog and conventions: `scripts/CLAUDE.md`.
 - Example compositions: `scripts/examples/CLAUDE.md`.
-- Project rules and workflow: `CLAUDE.md`.
-- Measurements and findings: `knowledge.md`.
+- Measurement method and setup traps: `USAGE.md`.
+- Project structure and rules: `CLAUDE.md`.
+- Load test results: `results.md`.

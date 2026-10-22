@@ -24,4 +24,3 @@ We keep each example as a thin composition of existing scripts, so it shows a wo
 - Inputs are env vars with defaults.
 - `run.sh` is idempotent wherever the scripts it calls are.
 - `run.sh` ends by naming its cleanup: `scripts/cleanup_1_cluster.sh` or an app cleanup.
-- We write `.sh` files through the `coder-shell-script` agent.

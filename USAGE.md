@@ -1,8 +1,8 @@
-# Debugging Linkerd with this test setup
+# Debugging Linkerd with this setup
 
 What stays true across sessions: how to measure, what the setup's quirks
-would otherwise make you conclude wrongly, and the traps. Run state and
-current numbers live in the `checklist_*.md` files, not here.
+would otherwise make us conclude wrongly, and the traps. Measured numbers
+live in `results.md`, not here.
 
 ## Measure the right thing
 
@@ -66,7 +66,7 @@ added. Below ~1s sampling it is meaningless: it advances in lumps.
 expensive via `linkerd diagnostics proxy-metrics` (a process and a fresh
 forward per call). Sampling at 1Hz perturbed throughput by <0.4%.
 
-## Attribute before you tune
+## Attribute before tuning
 
 Two methods, and agreeing answers are worth far more than one:
 
@@ -90,7 +90,7 @@ predicted that took one query.
 
 **A closed-loop load test is latency-bound.** With N connections each
 doing one request at a time, throughput ≈ N ÷ latency. If adding
-connections only raises latency and leaves throughput flat, you are not
+connections only raises latency and leaves throughput flat, the setup is not
 capacity-limited and adding capacity will not help.
 
 ## Setup facts that change conclusions
@@ -99,14 +99,14 @@ capacity-limited and adding capacity will not help.
 are routable.** Every access decision follows from this. A container on
 the `kind` network reaching the NodePort is roughly twice the throughput
 of any host-side path, and most of that loss is the macOS-to-VM boundary
-rather than whatever relay you chose. Benchmark from inside the network.
+rather than the chosen relay. Benchmark from inside the network.
 
 **`kubectl port-forward` binds one pod and dies with it**, so meshing or
 unmeshing kills it mid-run. Anything targeting a Service's NodePort
 survives pod replacement. Pin the NodePort, or it is reassigned on every
 reinstall and a saved URL silently points at nothing.
 
-**Know what your test path actually exercises.** emojivoto's `/` is a
+**Know what the test path actually exercises.** emojivoto's `/` is a
 560-byte static page that makes no backend calls, so it does not exercise
 the mesh's RPC path at all. `/api/list` fans out 1:1 to emoji-svc and
 returns 8x the body. `/api/vote` is the only path reaching voting-svc.
@@ -182,12 +182,12 @@ they are grazing a 2-core cap and are in fact at half of it each.
   unchanged, and `kubectl apply` reports success. Clear the annotation
   first.
 - **`linkerd check --proxy` can exit non-zero for reasons unrelated to
-  your workload** (here, a local extension rejecting a flag the CLI
+  the workload** (here, a local extension rejecting a flag the CLI
   passes it). Under `set -e` that makes a healthy mesh look broken.
 - **`proxy-metrics <workload>` answers for every pod behind it**,
   including one still terminating. Scope to `po/<pod>`.
 - **During a rollout the old pod is still Running and sorts first**, so
-  `.items[0]` gives you the setting you just replaced. Sort by
+  `.items[0]` returns the setting just replaced. Sort by
   `creationTimestamp`.
 - **An unmeshed pod silently disables its own policy.** A Server or
   AuthorizationPolicy is enforced by the target's inbound proxy, so if the
@@ -216,62 +216,6 @@ should not add identity labels of their own.
 `tokio_rt_local_queue_depth` because both are set from
 `total_local_queue_depth` instead of `global_queue_depth`. Unfixed on
 main, shipped since 2023. Do not use it.
-
-## Scripts
-
-Prefixes match the groups below, and numbers give run order within a
-group. `init_` starts at `init_0`, which builds nothing but must run
-first. `pf_` scripts block until ctrl-C, so a rebuild must never call
-one. `wip_` marks a script that works but is not fit to hand over.
-
-### Setup
-- `init_0_prerequisites.sh` checks required tools; exits non-zero if one is missing
-- `init_1_create_cluster.sh` kind cluster plus Gateway API CRDs; reads `init_1_create_cluster.yaml` to publish the NodePort to the host
-- `init_2_install_linkerd.sh` control plane, ending on `linkerd check`
-- `init_3_install_linkerd_viz.sh` viz, which carries the Prometheus everything reads
-- `init_4_install_grafana.sh` grafana, pointed at that Prometheus
-- `init_5_install_headlamp.sh` headlamp, the cluster UI
-- `init_6_deploy_emojivoto.sh` the demo app, which arrives unmeshed
-- `init_7_install_haproxy.sh` haproxy ingress and its Ingress, NodePort pinned
-- `init_8_install_cpu_probe.sh` the cpu-probe DaemonSet that every CPU measurement reads through; verifies the cgroup mount rather than trusting Ready, since a Ready pod with the wrong tree looks identical
-- `cleanup_1_cluster.sh` deletes the cluster; nothing survives it
-
-### General
-- `pf_1_viz_dashboard.sh` opens the linkerd-viz dashboard
-- `pf_2_grafana_dashboard.sh` opens grafana, password to the clipboard
-- `pf_3_headlamp_dashboard.sh` opens headlamp, token to the clipboard
-- `pf_4_haproxy_forward.sh` forwards the ingress to localhost:8080 for a browser; do not benchmark through it
-
-### Dev
-- `dev_1_mesh_emojivoto.sh <mesh|unmesh>` meshes or unmeshes emojivoto
-- `dev_2_mesh_haproxy.sh <mesh|unmesh>` meshes or unmeshes the ingress, and nothing else. It re-pins the NodePort on unmesh and passes the live replica count back through on both paths, because those are the two fields an upgrade would otherwise undo. Core pinning is `dev_3`'s job and survives a toggle on its own.
-- `dev_3_modify_linkerd_cores.sh [NS] [WORKLOAD] [CORES]` sets the proxy worker cap, defaulting to `emojivoto deploy/web`
-- `dev_4_inspect_cores.sh [NS] [WORKLOAD]` confirms the cap took: annotation, container env, the proxy's startup decision and `tokio_rt_workers` together, because they can disagree
-- `dev_5_measure_start.sh <run> <ns> <workload>` starts the CPU sampler on one workload and blocks; `RESOLVE_INTERVAL` (default 5s) sets how fast a roll is noticed
-- `dev_6_measure_stop.sh` ends the run and writes `<run>.csv`, one row per container per second
-- `dev_7_scale_workloads.sh [EMOJIVOTO] [HAPROXY]` sets replica counts, defaulting to 5 and 1; `VOTE_BOT_REPLICAS=0` removes the built-in load generator, which is capacity for the app but noise for a measurement
-- `dev_8_wireshark_capture.sh [NS] [WORKLOAD]` captures one pod's traffic as pcap via an ephemeral `sniff` container, to `OUT` or stdout for a live Wireshark; pod-to-pod 4143 is mTLS, only the in-pod proxy-to-app hop is cleartext
-
-### Testing
-- `test_load_1_local_tunnel.sh [PORT] [PATH]` drives load from the host, only when you deliberately want to measure a host-side path
-- `test_load_2_docker_nodeport.sh [CONNS] [DURATION] [URL]` the default load generator: a container on the `kind` network straight at the NodePort. Given a URL it skips the kubectl derivation entirely, which is how it points at a remote cluster with no code change. It prints ONE aggregate for the whole run, so a run spanning two mesh states cannot have its two request rates separated: that needs two runs.
-
-`util_measure.sh` is sourced by `dev_5` and `dev_6` and run directly by
-neither. It holds only what both need: the state-dir layout, locating the
-probe pod, the in-pod reaper, the cgroup and container-id contract the
-two ends agree on, workload-to-pod resolution with mesh state, and the
-CSV schema.
-
-### In revision
-`wip_`: these produced the CPU and per-hop-latency results but are not
-fit to hand over: hardcoded proxy targets that break on an unmeshed workload, a
-hardcoded 200% threshold, and no cAdvisor fallback for a container with
-no proxy.
-
-- `wip_1_proxy_runtime.sh` KEY=VALUE snapshot of one proxy's tokio counters, threads and CPU, meant to be diffed
-- `wip_2_hop_latency.sh` brackets a run and diffs every proxy's latency histogram per hop
-- `wip_3_measured.sh` wraps a run with before/after proxy snapshots, for totals
-- `wip_4_sampled.sh` samples throughout a run, which is what finds peaks an average hides
 
 ## Tooling
 

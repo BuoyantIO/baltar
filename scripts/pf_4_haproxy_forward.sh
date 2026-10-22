@@ -10,10 +10,10 @@
 # init_7, so this is pf_4. It blocks until ctrl-C, so a rebuild chain
 # must not run it.
 #
-# This path is not for benchmarking. Per
-# checklist_load_test_linkerd.md, kubectl port-forward measured 23.1k
-# RPS against 53.4k for the same settings hit directly on the
-# NodePort. scripts/test_load_2_docker_nodeport.sh is the one to use.
+# This path is not for benchmarking. Per results.md, kubectl
+# port-forward measured 23.1k RPS against 53.4k for the same settings
+# hit directly on the NodePort. scripts/test_load_2_docker_nodeport.sh
+# is the one to use.
 set -euo pipefail
 
 echo "Access Emojivoto in your browser at: http://localhost:8080"

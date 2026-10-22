@@ -15,8 +15,8 @@
 # exist, the CLI reports the build tag, the CLI and the controller binary
 # contain the PROXY protocol v2 annotation key, and the proxy image carries
 # the custom proxy binary. A true render with `linkerd inject` needs cluster
-# config, so it is deferred to checklist_repro_proxy_protocol. Prints
-# one line per check and exits non-zero if any check fails.
+# config, so it is not checked here. Prints one line per check and
+# exits non-zero if any check fails.
 #
 # The CLI is a linux/amd64 binary built for the VM. On macOS the CLI
 # checks cannot run and fail; run this script on the VM.

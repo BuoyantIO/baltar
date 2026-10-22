@@ -31,12 +31,6 @@ We run this L4 proxy between linkerd-proxy and an app. It logs client-to-app byt
 - `tests/localhost.rs` runs the proxy on localhost against `tests/harness/`.
 - We unit-test `core/` without sockets.
 
-## Image and cluster scripts
+## Cluster scripts
 
-We run these from `scripts/app/`, in order, on the VM with the kind cluster up.
-
-- `inspector_1_build_image.sh`: runs tests, builds the release binary, loads the `Dockerfile` image into kind.
-- `inspector_2_deploy.sh` with `inspector_2_deploy.yaml`: deploys ns `inspect` (inspector, echo, client).
-- `inspector_3_send.sh`: sends a marker through port 15432 and checks the echo, which proves the header was stripped.
-- `inspector_4_verify.sh`: checks the inspector log for the PROXY v2 header and TLV 0xE0 identity.
-- `inspector_5_cleanup.sh`: deletes ns `inspect`.
+`scripts/app/inspector_1` to `inspector_5` build, deploy, exercise and clean up the inspector; see `scripts/CLAUDE.md`.
