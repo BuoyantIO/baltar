@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/mc_1_multicluster.sh
 #        GATEWAY_ADDRESS=172.18.255.200 ./scripts/mc_1_multicluster.sh
 #

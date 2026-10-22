@@ -1,6 +1,6 @@
 # multicluster
 
-Reference run of a two-cluster Linkerd mirror setup. Run everything from the launchy-dev repo root.
+Reference run of a two-cluster Linkerd mirror setup. Run everything from the baltar repo root.
 
 ## What it does
 

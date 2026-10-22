@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/examples/grafana/run.sh
 #        KIND_LISTEN_ADDRESS=0.0.0.0 ./scripts/examples/grafana/run.sh
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/test_policy_1_run.sh
 #        TEST_FILTER=rejects_duplicate_mtls_authns ./scripts/test_policy_1_run.sh
 #        TEST_BINARY=e2e_server_authorization CONTEXT=kind-other ./scripts/test_policy_1_run.sh

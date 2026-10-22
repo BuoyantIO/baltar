@@ -1,4 +1,4 @@
-# launchy-dev
+# baltar
 
 We stand up a Linkerd test cluster and measure it: CPU per container, latency per hop, meshed vs. unmeshed, under load. The cluster is a local `kind` cluster by default.
 

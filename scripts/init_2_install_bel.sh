@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/init_2_install_bel.sh
 #        BEL_VERSION=2.19.12 ./scripts/init_2_install_bel.sh
 #        BEL_PROXY_ADDITIONAL_ENV='[{"name":"RUST_LOG","value":"debug"}]' ./scripts/init_2_install_bel.sh

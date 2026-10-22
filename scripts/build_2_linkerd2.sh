@@ -3,16 +3,16 @@
 # shellcheck source=scripts/util_build.sh
 . scripts/util_build.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/build_2_linkerd2.sh
 #        LINKERD2_REF=<branch|sha|pull/<n>/head> ./scripts/build_2_linkerd2.sh
 #        LINKERD2_DIR=/path/to/linkerd2 BUILD_OUT_DIR=/path/to/out ./scripts/build_2_linkerd2.sh
 #
 # Env vars and defaults:
-#   LINKERD2_DIR     ../linkerd2 beside this launchy-dev checkout
+#   LINKERD2_DIR     ../linkerd2 beside this baltar checkout
 #   LINKERD2_REF     pull/15676/head (the PR branch lives in a fork)
 #   DOCKER_REGISTRY  localhost/linkerd (the justfile default is random per run)
-#   BUILD_OUT_DIR    out/ in the launchy-dev checkout (from util_build.sh)
+#   BUILD_OUT_DIR    out/ in the baltar checkout (from util_build.sh)
 #
 # Build step 2 (after build_1_proxy.sh): builds linkerd2's images and CLI, overlays the PR proxy, writes images.env.
 # The overlay is needed because `just linkerd-build` bakes in a released proxy binary.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/init_8_install_cpu_probe.sh
 #
 # Setup step 8. Installs the cpu-probe DaemonSet, which mounts each

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/init_1_create_cluster.sh
 #        GATEWAY_API_VERSION=v1.5.1 ./scripts/init_1_create_cluster.sh
 #        KIND_LISTEN_ADDRESS=0.0.0.0 ./scripts/init_1_create_cluster.sh

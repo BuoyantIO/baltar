@@ -3,7 +3,7 @@
 # shellcheck source=scripts/util_measure.sh
 . scripts/util_measure.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/dev_5_measure_start.sh <run-name> <namespace> <workload>
 #
 #   <run-name>   titles the run and names its CSV, <run-name>.csv

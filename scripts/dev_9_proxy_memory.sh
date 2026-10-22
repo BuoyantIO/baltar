@@ -3,10 +3,10 @@
 # shellcheck source=scripts/util_kube.sh
 . scripts/util_kube.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/dev_9_proxy_memory.sh
 #        MEM_NAMESPACE=emojivoto MEM_SELECTOR=app=web-svc ./scripts/dev_9_proxy_memory.sh
-#        CONTEXT=kind-launchy ./scripts/dev_9_proxy_memory.sh
+#        CONTEXT=kind-baltar ./scripts/dev_9_proxy_memory.sh
 #
 # Prints, for every pod matching MEM_SELECTOR, the MEM_CONTAINER process's Rss and AnonHugePages
 # from /proc/<pid>/smaps_rollup on its kind node, with the node's transparent_hugepage setting and

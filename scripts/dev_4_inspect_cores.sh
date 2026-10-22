@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Shows the proxy's core settings and what the proxy did with them.
-# Run from the launchy-dev repo root. Pairs with dev_3: run before and after.
+# Run from the baltar repo root. Pairs with dev_3: run before and after.
 #
 # Usage:
 #   ./scripts/dev_4_inspect_cores.sh

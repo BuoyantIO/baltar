@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/init_4_install_grafana.sh
 #
 # Setup step 4. Installs Grafana wired to the linkerd-viz Prometheus.

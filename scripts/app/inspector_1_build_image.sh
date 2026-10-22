@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/app/inspector_1_build_image.sh
 #        INSPECTOR_IMAGE=localhost/l4-proto-inspector:test ./scripts/app/inspector_1_build_image.sh
 #

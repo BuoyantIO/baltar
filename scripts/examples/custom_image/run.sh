@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/examples/custom_image/run.sh
 #        LINKERD2_PROXY_REF=pull/4625/head LINKERD2_REF=pull/15676/head ./scripts/examples/custom_image/run.sh
 #        BUILD_OUT_DIR=/path/to/out ./scripts/examples/custom_image/run.sh
@@ -7,7 +7,7 @@
 # Env vars and defaults (passed through; defaults live in the called scripts):
 #   LINKERD2_PROXY_REF  pull/4625/head (build_1_proxy.sh)
 #   LINKERD2_REF        pull/15676/head (build_2_linkerd2.sh)
-#   BUILD_OUT_DIR       out/ in the launchy-dev checkout (util_build.sh)
+#   BUILD_OUT_DIR       out/ in the baltar checkout (util_build.sh)
 #
 # Builds a custom proxy and Linkerd control plane, installs them on the kind cluster and verifies the images.
 # build_5_verify_linkerd2.sh runs the linux/amd64 CLI, so its CLI checks fail on macOS.

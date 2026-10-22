@@ -3,7 +3,7 @@
 # shellcheck source=scripts/util_kube.sh
 . scripts/util_kube.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: TARGET_URL=http://svc.ns:8080/ NAMESPACE=ns ./scripts/test_load_3_fortio.sh
 #        CONNECTIONS=500 QPS=100 TARGET_URL=http://svc.ns:8080/ NAMESPACE=ns ./scripts/test_load_3_fortio.sh
 #

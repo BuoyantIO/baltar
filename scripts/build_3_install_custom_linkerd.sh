@@ -3,12 +3,12 @@
 # shellcheck source=scripts/util_build.sh
 . scripts/util_build.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/build_3_install_custom_linkerd.sh
 #        BUILD_OUT_DIR=/path/to/out ./scripts/build_3_install_custom_linkerd.sh
 #
 # Env vars and defaults:
-#   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
+#   BUILD_OUT_DIR  out/ in the baltar checkout (from util_build.sh)
 #
 # Build step 3 (after init_1_create_cluster.sh, build_2_linkerd2.sh): installs Linkerd from the custom build.
 # PROXY_INIT_IMAGE is unused: linkerd-init renders from proxy.image, which contains proxy-init.

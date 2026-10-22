@@ -3,9 +3,9 @@
 # shellcheck source=scripts/util_kube.sh
 . scripts/util_kube.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/init_9_deploy_echo.sh
-#        CONTEXT=kind-launchy ./scripts/init_9_deploy_echo.sh
+#        CONTEXT=kind-baltar ./scripts/init_9_deploy_echo.sh
 #
 # Setup step 9: deploys init_9_echo.yaml: ns demo (meshed) and a meshed echo server on opaque port 5678.
 # Deletes the Deployment first so the pod restarts with the currently installed proxy; safe to rerun.

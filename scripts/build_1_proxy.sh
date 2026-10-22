@@ -3,16 +3,16 @@
 # shellcheck source=scripts/util_build.sh
 . scripts/util_build.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/build_1_proxy.sh
 #        LINKERD2_PROXY_REF=<branch|sha|pull/<n>/head> ./scripts/build_1_proxy.sh
 #        LINKERD2_PROXY_DIR=/path/to/linkerd2-proxy BUILD_OUT_DIR=/path/to/out ./scripts/build_1_proxy.sh
 #
 # Env vars and defaults:
-#   LINKERD2_PROXY_DIR  ../linkerd2-proxy beside this launchy-dev checkout
+#   LINKERD2_PROXY_DIR  ../linkerd2-proxy beside this baltar checkout
 #   LINKERD2_PROXY_REF  pull/4625/head (the PR branch lives in a fork)
 #   LINKERD_TAG         edge-25.11.3, the proxy Dockerfile's base tag (set so the justfile skips the GitHub API)
-#   BUILD_OUT_DIR       out/ in the launchy-dev checkout (from util_build.sh)
+#   BUILD_OUT_DIR       out/ in the baltar checkout (from util_build.sh)
 #
 # Build step 1: builds localhost/linkerd/proxy:custom-<short-sha> in the devcontainer and writes proxy.env.
 # The SHA tag replaces the justfile default, which embeds the branch name and so reads "HEAD" when detached.

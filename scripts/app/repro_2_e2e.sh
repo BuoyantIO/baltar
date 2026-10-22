@@ -3,17 +3,17 @@
 # shellcheck source=scripts/util_build.sh
 . scripts/util_build.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/app/repro_2_e2e.sh
 #        ./scripts/app/repro_2_e2e.sh TestAllowed
 #        ./scripts/app/repro_2_e2e.sh TestAllowed TestDenied
 #        PGPPI_DIR=~/src/pg-ppi GO_IMAGE=golang:1.26 ./scripts/app/repro_2_e2e.sh
 #
 # Env vars and defaults:
-#   PGPPI_DIR      pg-ppi checkout next to launchy-dev
+#   PGPPI_DIR      pg-ppi checkout next to baltar
 #   GO_IMAGE       golang:1.26
 #   KUBECTL        kubectl on PATH
-#   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
+#   BUILD_OUT_DIR  out/ in the baltar checkout (from util_build.sh)
 #
 # Repro step 2: runs pg-ppi's e2e suite against kind-kind, one go test per -run pattern argument.
 # Runs in a container for pg-ppi's Go 1.26 toolchain, with host networking for kind's 127.0.0.1 API server.

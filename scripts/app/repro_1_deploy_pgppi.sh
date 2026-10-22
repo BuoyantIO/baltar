@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/app/repro_1_deploy_pgppi.sh
 #        PGPPI_DIR=~/src/pg-ppi ./scripts/app/repro_1_deploy_pgppi.sh
 #        PGPPI_IMAGE=ghcr.io/daniel-garcia/pg-ppi:dev ./scripts/app/repro_1_deploy_pgppi.sh
@@ -60,7 +60,7 @@
 #   Other clients in ns billing: reporting, intruder, cdc, unmeshed.
 set -euo pipefail
 
-# Inputs with defaults; PGPPI_DIR is a pg-ppi checkout next to launchy-dev.
+# Inputs with defaults; PGPPI_DIR is a pg-ppi checkout next to baltar.
 PGPPI_DIR=${PGPPI_DIR:-../pg-ppi}
 PGPPI_IMAGE=${PGPPI_IMAGE:-ghcr.io/daniel-garcia/pg-ppi:dev}
 CERT_MANAGER_VERSION=${CERT_MANAGER_VERSION:-v1.21.2}

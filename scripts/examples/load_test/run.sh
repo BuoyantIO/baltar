@@ -3,7 +3,7 @@
 # shellcheck source=scripts/util_measure.sh
 . scripts/util_measure.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/examples/load_test/run.sh
 #        CONNECTIONS=250 DURATION=60s ./scripts/examples/load_test/run.sh
 #        LOAD_SCRIPT=test_load_1_local_tunnel.sh RUN_NAME=tunnel-web ./scripts/examples/load_test/run.sh

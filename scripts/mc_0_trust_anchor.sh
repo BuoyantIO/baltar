@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/mc_0_trust_anchor.sh
 #        ANCHOR_DIR=out/anchor ./scripts/mc_0_trust_anchor.sh
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/examples/bel/run.sh
 #        BEL_VERSION=2.19.12 ./scripts/examples/bel/run.sh
 #        CONNECTIONS=500 QPS=100 ./scripts/examples/bel/run.sh

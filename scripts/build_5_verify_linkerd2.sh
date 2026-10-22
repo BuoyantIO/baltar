@@ -3,12 +3,12 @@
 # shellcheck source=scripts/util_build.sh
 . scripts/util_build.sh
 
-# Run from the launchy-dev repo root.
+# Run from the baltar repo root.
 # Usage: ./scripts/build_5_verify_linkerd2.sh
 #        BUILD_OUT_DIR=/path/to/out ./scripts/build_5_verify_linkerd2.sh
 #
 # Env vars and defaults:
-#   BUILD_OUT_DIR  out/ in the launchy-dev checkout (from util_build.sh)
+#   BUILD_OUT_DIR  out/ in the baltar checkout (from util_build.sh)
 #
 # Build step 5. Reads $BUILD_OUT_DIR/images.env from build_2_linkerd2.sh
 # and proxy.env from build_1_proxy.sh. Checks that the linkerd2 images

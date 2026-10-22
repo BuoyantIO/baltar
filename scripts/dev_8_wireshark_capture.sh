@@ -6,8 +6,8 @@
 #        OUT=/tmp/web.pcap ./scripts/dev_8_wireshark_capture.sh emojivoto deploy/web
 #        OUT=/tmp/pod.pcap ./scripts/dev_8_wireshark_capture.sh emojivoto pod/web-5d8f7c9b6-abcde
 #   Live view on the Mac, run there:
-#        ssh -o ClearAllForwardings=yes dev 'bash -lc "cd ~/projects/launchy-dev && scripts/dev_8_wireshark_capture.sh"' | /Applications/Wireshark.app/Contents/MacOS/Wireshark -k -i -
-# Run from the launchy-dev repo root. Defaults to inspect deploy/inspector.
+#        ssh -o ClearAllForwardings=yes dev 'bash -lc "cd ~/projects/baltar && scripts/dev_8_wireshark_capture.sh"' | /Applications/Wireshark.app/Contents/MacOS/Wireshark -k -i -
+# Run from the baltar repo root. Defaults to inspect deploy/inspector.
 #
 # Captures one running pod's traffic with tcpdump in an ephemeral debug
 # container, as pcap to OUT or stdout. All human-readable output goes to stderr.
