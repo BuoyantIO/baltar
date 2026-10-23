@@ -6,17 +6,19 @@
 # Run from the baltar repo root.
 # Usage: ./scripts/build_3_install_custom_linkerd.sh
 #        BUILD_OUT_DIR=/path/to/out ./scripts/build_3_install_custom_linkerd.sh
+#        CLUSTER_NAME=east ./scripts/build_3_install_custom_linkerd.sh
 #
 # Env vars and defaults:
 #   BUILD_OUT_DIR  out/ in the baltar checkout (from util_build.sh)
+#   CLUSTER_NAME   kind
 #
 # Build step 3 (after init_1_create_cluster.sh, build_2_linkerd2.sh): installs Linkerd from the custom build.
 # PROXY_INIT_IMAGE is unused: linkerd-init renders from proxy.image, which contains proxy-init.
 set -euo pipefail
 
-# Targets the cluster from init_1_create_cluster.sh.
-KIND_CLUSTER=kind
-KUBE_CONTEXT=kind-kind
+# Targets the cluster from init_1_create_cluster.sh, which names its context kind-<name>.
+CLUSTER_NAME=${CLUSTER_NAME:-kind}
+KUBE_CONTEXT=kind-$CLUSTER_NAME
 
 # read_env fails on a missing file or key, so a skipped build stops here.
 CONTROLLER_IMAGE=$(read_env images.env CONTROLLER_IMAGE)
@@ -25,7 +27,7 @@ LINKERD_CLI=$(read_env images.env LINKERD_CLI)
 [ -x "$LINKERD_CLI" ] || { echo "linkerd CLI not executable: $LINKERD_CLI" >&2; exit 1; }
 
 # Loads the localhost/ images into kind; the chart's IfNotPresent policy then never pulls.
-kind load docker-image --name "$KIND_CLUSTER" "$CONTROLLER_IMAGE" "$PROXY_IMAGE"
+kind load docker-image --name "$CLUSTER_NAME" "$CONTROLLER_IMAGE" "$PROXY_IMAGE"
 
 # Checks the cluster meets Linkerd's prerequisites.
 "$LINKERD_CLI" --context "$KUBE_CONTEXT" check --pre

@@ -61,16 +61,9 @@ docker image inspect "$PROXY_INIT_IMAGE" >/dev/null
 # Tags the overlay image with both short SHAs, tying it to the two source trees.
 PROXY_IMAGE=$DOCKER_REGISTRY/proxy:custom-$LINKERD2_SHORT_SHA-proxy-${LINKERD2_PROXY_SHA:0:7}
 
-# Builds the overlay image from a stdin Dockerfile that copies in only the PR proxy binary.
+# Overlays only the PR proxy binary on linkerd2's proxy image.
 # Copying more would replace linkerd2's identity and validator helpers.
-OVERLAY_DOCKERFILE="FROM $PROXY_INIT_IMAGE
-COPY --from=$PROXY_BUILD_IMAGE /usr/lib/linkerd/linkerd2-proxy /usr/lib/linkerd/linkerd2-proxy
-"
-# SC2016: printf expands in the container shell, as the devcontainer wrapper cannot forward our stdin.
-# shellcheck disable=SC2016
-devcontainer_exec "$LINKERD2_DIR" sh -c '
-  printf "%s" "$1" | docker buildx build --platform=linux/amd64 --load --tag "$2" -
-' sh "$OVERLAY_DOCKERFILE" "$PROXY_IMAGE"
+build_overlay "$PROXY_INIT_IMAGE" "$PROXY_IMAGE" "$PROXY_BUILD_IMAGE" /usr/lib/linkerd/linkerd2-proxy "" ""
 docker image inspect "$PROXY_IMAGE" >/dev/null
 
 # Hands the build off to build_5_verify_linkerd2.sh and the repro scripts.

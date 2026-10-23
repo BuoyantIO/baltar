@@ -81,3 +81,52 @@ read_env() {
   line=$(grep -m1 "^${key}=" "$file") || { echo "missing key $key in $file" >&2; return 1; }
   echo "${line#*=}"
 }
+
+# Builds an overlay image into the host docker:
+#   build_overlay <base> <tag> <copy-from-image> "<path>..." "<src=dest>..." <setcap-path>
+# Pass "" for unused inputs. Copied paths land at the same path; setcap runs after every copy, which drops file caps.
+# Runs in a subshell so its EXIT trap removes the staged context without replacing the caller's trap.
+build_overlay() (
+  base=$1 tag=$2 copy_from=$3 setcap_path=$6
+  read -r -a copy_paths <<< "$4"
+  read -r -a local_files <<< "$5"
+
+  # Stages local files in a throwaway context under out/, so nothing is written into a source tree.
+  mkdir -p "$BUILD_OUT_DIR"
+  ctx=$(mktemp -d "$BUILD_OUT_DIR/overlay.XXXXXX")
+  trap 'rm -rf "${ctx:-}"' EXIT
+
+  # Writes the Dockerfile: copies from the image, then local files, then setcap.
+  dockerfile="FROM $base
+"
+  for p in ${copy_paths[@]+"${copy_paths[@]}"}; do
+    dockerfile+="COPY --from=$copy_from $p $p
+"
+  done
+  i=0
+  for f in ${local_files[@]+"${local_files[@]}"}; do
+    i=$((i + 1))
+    cp "${f%%=*}" "$ctx/file$i"
+    dockerfile+="COPY file$i ${f#*=}
+"
+  done
+  # Exec-form RUN: the proxy image has no /bin/sh. Args and USER match linkerd2's Dockerfile.proxy.
+  if [ -n "$setcap_path" ]; then
+    dockerfile+="USER root
+RUN [\"/usr/sbin/setcap\", \"cap_net_raw,cap_net_admin+eip\", \"$setcap_path\"]
+USER 65534
+"
+  fi
+
+  # Needs a docker-driver builder (the default): a docker-container builder cannot see local-only base images.
+  printf '%s' "$dockerfile" | docker buildx build --platform=linux/amd64 --load --tag "$tag" -f - "$ctx"
+)
+
+# Lists a local image's files: image_ls <image> [tar -t flags, default -t], e.g. image_ls "$img" -tv | grep sysctl.
+# The dummy cmd lets `docker create` accept images with no default cmd; --pull never keeps it to local images.
+image_ls() (
+  img=$1 flags=${2:--t}
+  c=$(docker create --pull never "$img" /x)
+  trap '[ -z "${c:-}" ] || docker rm "$c" >/dev/null' EXIT
+  docker export "$c" | tar "$flags" -f -
+)

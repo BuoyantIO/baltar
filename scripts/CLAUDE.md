@@ -10,7 +10,7 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 - `init_1_create_cluster.sh`: creates the kind cluster and installs the Gateway API CRDs.
   - `init_1_create_cluster.yaml`: kind config that publishes the NodePort to the host.
 - `init_2_install_bel.sh`: installs BEL (Buoyant Enterprise for Linkerd).
-- `init_2_install_linkerd.sh`: installs the Linkerd control plane with the `linkerd` CLI on PATH.
+- `init_2_install_linkerd.sh`: installs the Linkerd control plane with the `linkerd` CLI on PATH, or a pinned one in `out/cli/` via `LINKERD_VERSION`.
 - `init_3_install_linkerd_viz.sh`: installs linkerd-viz, whose Prometheus Grafana reads.
 - `init_4_install_grafana.sh`: installs Grafana wired to the viz Prometheus.
 - `init_5_install_headlamp.sh`: installs the Headlamp cluster UI.
@@ -39,6 +39,8 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 - `dev_7_scale_workloads.sh`: sets replica counts for emojivoto and HAProxy.
 - `dev_8_wireshark_capture.sh`: captures a workload's traffic for Wireshark or a pcap file.
 - `dev_9_proxy_memory.sh`: prints proxy Rss and AnonHugePages per pod from its kind node.
+- `dev_10_linkerd_upgrade.sh`: re-renders and applies the control plane with extra `--set` values, then waits for the rollout.
+- `dev_11_pod_sysctl.sh`: prints a `/proc/sys` key per pod read in its netns, with the node netns value as a reference.
 
 ### test: load and policy tests
 
@@ -55,6 +57,7 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 - `build_3_install_custom_linkerd.sh`: installs the images built by steps 1 and 2.
 - `build_4_verify_proxy.sh`: verifies the installed proxy is the custom build.
 - `build_5_verify_linkerd2.sh`: verifies the installed control plane is the custom build.
+- `build_6_overlay_proxy.sh`: overlays image paths, local files and an optional setcap on a proxy image, loads it into kind and prints the `proxy.image` args for `dev_10`.
 
 ### pf: port-forwards and dashboards
 
@@ -70,9 +73,9 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
 
 ### util: shared helpers
 
-- `util_build.sh`: helpers for build, verify and repro scripts.
+- `util_build.sh`: helpers for build, verify and repro scripts, including `build_overlay` and `image_ls` (an image's file listing).
 - `util_measure.sh`: helpers for the CPU sampler.
-- `util_kube.sh`: `k` (kubectl on `CONTEXT`).
+- `util_kube.sh`: `k` (kubectl on `CONTEXT`) and `pod_node_pid` (a pod container's kind node and host pid).
 
 ### app: scripts for the apps we test
 
