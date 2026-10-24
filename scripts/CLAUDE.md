@@ -48,6 +48,13 @@ We keep one step per script, named `<category>_<n>_<purpose>`. The header of eac
   - `test_load_3_fortio.yaml`: the fortio Deployment manifest.
 - `test_policy_1_run.sh`: runs a linkerd2 policy test binary once with trace logs, via `just policy-test-run`.
 
+### tm: threat-model invariant checks
+
+- `tm_1_namespace_scope.sh`: checks linkerd-destination never puts an ExternalWorkload from one namespace into another namespace's EndpointSlice.
+  - `tm_1_namespace_scope.yaml`: the two namespaces, the ExternalWorkload and a same-selector Service in each.
+- `tm_2_admin_routes.sh`: checks a meshed proxy's admin port 4191 answers 403 to a non-loopback client on each non-public route.
+  - `tm_2_admin_routes.yaml`: the meshed nginx target and the unmeshed curl client.
+
 ### build: custom Linkerd builds
 
 - `build_1_proxy.sh`: builds the linkerd2-proxy image from a ref.

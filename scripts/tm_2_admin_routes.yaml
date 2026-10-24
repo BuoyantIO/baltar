@@ -1,0 +1,47 @@
+# Meshed nginx target in TARGET_NS and an unmeshed curl client pod in CLIENT_NS.
+# tm_2_admin_routes.sh fills the <..._PLACEHOLDER> values and applies it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: <TARGET_NS_PLACEHOLDER>
+  annotations:
+    linkerd.io/inject: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: <CLIENT_NS_PLACEHOLDER>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tm-target
+  namespace: <TARGET_NS_PLACEHOLDER>
+  labels:
+    app: tm-target
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tm-target
+  template:
+    metadata:
+      labels:
+        app: tm-target
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tm-client
+  namespace: <CLIENT_NS_PLACEHOLDER>
+spec:
+  containers:
+    - name: curl
+      image: curlimages/curl
+      command: ["sleep", "infinity"]

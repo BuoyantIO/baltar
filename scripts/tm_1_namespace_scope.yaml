@@ -1,0 +1,49 @@
+# Namespaces A and B, an ExternalWorkload and control Service in A, and a same-selector Service in B.
+# tm_1_namespace_scope.sh fills the <..._PLACEHOLDER> values and applies it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: <NS_A_PLACEHOLDER>
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: <NS_B_PLACEHOLDER>
+---
+apiVersion: workload.linkerd.io/v1beta1
+kind: ExternalWorkload
+metadata:
+  name: tm-ew
+  namespace: <NS_A_PLACEHOLDER>
+  labels:
+    app: tm-target
+spec:
+  meshTLS:
+    identity: "spiffe://cluster.local/tm-ew"
+    serverName: "tm-ew.cluster.local"
+  ports:
+    - port: 80
+  workloadIPs:
+    - ip: "<WORKLOAD_IP_PLACEHOLDER>"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tm-svc
+  namespace: <NS_A_PLACEHOLDER>
+spec:
+  selector:
+    app: tm-target
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tm-svc
+  namespace: <NS_B_PLACEHOLDER>
+spec:
+  selector:
+    app: tm-target
+  ports:
+    - port: 80
